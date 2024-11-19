@@ -5,8 +5,7 @@
 /runs/*
 !runs/.gitkeep
 
-# /visualization/*
-# !visualization/.gitkeep
+/viz_local/*
 
 /reports/*
 
