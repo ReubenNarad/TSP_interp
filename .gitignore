@@ -5,8 +5,8 @@
 /runs/*
 !runs/.gitkeep
 
-/visualization/*
-!visualization/.gitkeep
+# /visualization/*
+# !visualization/.gitkeep
 
 /reports/*
 
