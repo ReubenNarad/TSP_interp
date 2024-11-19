@@ -1,0 +1,3 @@
+Maybe the idea is if the instances are drawn from a distribution, the model may learn distribution-specific heuristics. Then, extract that heuristic! Lovely!
+
+- Suspicious 0 logit in the bottom left?
