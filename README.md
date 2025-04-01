@@ -1,49 +1,48 @@
 # TSP-RL: Interpretable Reinforcement Learning for the Traveling Salesman Problem
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
 > **Note**: This is an ongoing research project. Code and documentation are continuously being improved.
 
 ## Overview
 
-This repository contains an implementation of a reinforcement learning approach to solve the Traveling Salesman Problem (TSP) with a focus on interpretability using Sparse Autoencoders (SAE).
+Solving combinatorial optimization problems can famously be NP-hard. Recent work has applied deep learning to find near-optimal solutions in much less time. However, these models are black boxes, and it is difficult to understand what they are doing. We believe that the model's internal representations contain information about the instance that may be useful for practitioners, but is currently inaccessible.
 
-The project aims to:
-1. Train transformer-based policies to solve TSP instances using reinforcement learning
-2. Extract interpretable features from the learned neural representations using sparse autoencoders
-3. Visualize and analyze these features to understand what patterns the neural network has learned
+This repository contains code for interpreting the learned representations of a transformer-based policy for the Traveling Salesman Problem (TSP). Currently, we use Sparse Autoencoders (SAE) trained on activations from the encoder output of the policy to extract features. We also include tooling for visualizing the features.
+
+Future goals include:
+- Training probes (both dense linear and on SAE features) to probe for attributes of TSP instances, such as difficulty.
+- Training cross-layer transcoders to find causal relationships between layers, enabling an interpretable knowledge graph.
+
+What *is* going on in there, anyway?
 
 ## Project Structure and Architecture
 
-The project is structured around three main components:
+The project contains three main components:
 
 1. **Environment (`env/`)**: TSP environment generator and Concorde solver integration
 2. **Policy (`policy/`)**: Transformer-based policy models for solving TSP instances using reinforcement learning
 3. **Sparse Autoencoder (`sae/`)**: Extracts interpretable features from the learned policy representation
-4. **Shell Scripts (`*.sh`)**: Automation scripts for the complete workflow
 
 ## Installation
 
 ```bash
 # Clone the repository
-git 
-cd tsp_interp
+git clone https://github.com/ReubenNarad/TSP_interp.git
+cd TSP_interp
 
 # Install dependencies
 pip install -r requirements.txt
 ```
 
+This project requires the Concorde TSP Solver to be installed and accessible in your system's PATH. The code calls the `concorde` command directly. You can download Concorde from the [official website](https://www.math.uwaterloo.ca/tsp/concorde/downloads/downloads.htm) and follow their installation instructions to make it available as a command-line tool.
+
 ## Workflow and Usage
 
-The project follows a 4-step workflow:
+The project follows a 4-step workflow, using shell scripts:
 
 ### 1. Training a Policy
 Currently, we use a Graph Attention Network (cite Kool et al), implemented by the RL4CO library (cite) REINFORCE method (modified to use clipped rewards), and TSP environment. The default TSP environment generates distances by drawing node locations from a uniform distribution in the unit square, with the option to modify it.
 
-Specify the policy run name and hyperparameters before running:
-```bash
-bash train_policy.sh
-```
+Specify the policy hyperparameters in `train_policy.sh`:
 
 Key hyperparameters in `train_policy.sh`:
 - `run_name`: Name of the policy run
@@ -53,12 +52,22 @@ Key hyperparameters in `train_policy.sh`:
 - `embed_dim`: Dimensionality of transformer embeddings
 - `n_encoder_layers`: Number of transformer encoder layers
 
+And then run:
+```bash
+bash train_policy.sh
+```
+
 ### 2. Collecting Activations
 
 After training the policy, collect activations from the encoder output by running the policy on a set of TSP instances drawn from the same distribution as the policy's training. This will be used as the training data for the sparse autoencoder:
 
+Specify the policy run name and the number of instances to collect activations for in `collect_activations.sh`:
+
+- `run_name`: Name of the policy run
+- `num_instances`: Number of TSP instances to collect activations for
+
+And then run:
 ```bash
-# Specify the policy run name before running
 bash collect_activations.sh
 ```
 
@@ -66,8 +75,13 @@ bash collect_activations.sh
 
 Train the SAE on the collected activations. We use a top-k sparse autoencoder (cite).
 
+Specify the policy run name and the SAE run name in `train_sae.sh`:
+
+- `run_name`: Name of the policy run
+- `sae_run_name`: Name of the SAE run
+
+And then run:
 ```bash
-# Specify the policy run name before running
 bash train_sae.sh
 ```
 
@@ -79,12 +93,15 @@ Key hyperparameters in `train_sae.sh`:
 ### 4. Analyzing Learned Features
 
 Finally, visualize and analyze the most important features of the SAE. In `analyze_features.sh`, specify:
+
+- `run_name`: Name of the policy run
+- `sae_run_name`: Name of the SAE run
 - `num_instances`: Number of instances to analyze
 - `batch_size`: Batch size for feature analysis
 - `num_features`: Number of features to analyze
 
+And then run:
 ```bash
-# Specify the policy run name and the SAE run name before running
 bash analyze_features.sh
 ```
 
