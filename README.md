@@ -1,4 +1,4 @@
-# TSP-RL: Interpretable Reinforcement Learning for the Traveling Salesman Problem
+# TSP-interp: Applying mechanistic interpretability to the Traveling Salesman Problem
 
 > **Note**: This is an ongoing research project. Code and documentation are continuously being improved.
 
@@ -133,23 +133,6 @@ runs/[run_name]/sae/sae_runs/[sae_run_name]/feature_analysis/
 To add more visualizations to this README, copy them to the `images/` directory and link them here.
 
 </details>
-
-## Results and Findings
-
-This research is ongoing, but preliminary results suggest that:
-
-1. The transformer-based policy can learn effective strategies for solving TSP instances
-2. The sparse autoencoder successfully extracts interpretable features from the policy's internal representations
-3. Many of these features correspond to meaningful spatial patterns relevant to solving TSP
-
-## Future Work
-
-Potential directions for future development:
-
-1. Add support for more TSP variants (e.g., Capacitated Vehicle Routing Problem)
-2. Create a web interface for interactive exploration of learned features
-3. Implement automated testing
-4. Add parallel processing support for faster training and analysis
 
 ## License
 
