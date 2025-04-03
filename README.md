@@ -113,38 +113,27 @@ The sparse autoencoder learns interpretable features from the policy's neural re
 
 ### Policy training
 
-<div style="display: flex; justify-content: space-between;">
-  <div style="flex: 1; margin-right: 10px;">
-    <img src="readme_images/small_circle.gif" alt="Small Circle Animation" width="100%">
-  </div>
-  <div style="flex: 1; margin-left: 10px;">
-    <img src="readme_images/uniform.gif" alt="Uniform Distribution Animation" width="100%">
-  </div>
-</div>
-
+<table>
+  <tr>
+    <td><img src="readme_images/small_circle.gif" alt="Small Circle Animation" width="100%"></td>
+    <td><img src="readme_images/uniform.gif" alt="Uniform Distribution Animation" width="100%"></td>
+  </tr>
+</table>
 
 ### Some interesting SAE features
 
-<div style="display: flex; flex-wrap: wrap; justify-content: space-between;">
-  <div style="flex: 0 0 30%; margin-bottom: 15px;">
-    <img src="readme_images/feature_329_overlay.png" alt="Feature 329 Overlay" width="100%">
-  </div>
-  <div style="flex: 0 0 30%; margin-bottom: 15px;">
-    <img src="readme_images/feature_447_overlay.png" alt="Feature 447 Overlay" width="100%">
-  </div>
-  <div style="flex: 0 0 30%; margin-bottom: 15px;">
-    <img src="readme_images/feature_485_overlay.png" alt="Feature 485 Overlay" width="100%">
-  </div>
-  <div style="flex: 0 0 30%;">
-    <img src="readme_images/feature_659_overlay.png" alt="Feature 659 Overlay" width="100%">
-  </div>
-  <div style="flex: 0 0 30%;">
-    <img src="readme_images/feature_770_overlay.png" alt="Feature 770 Overlay" width="100%">
-  </div>
-  <div style="flex: 0 0 30%;">
-    <img src="readme_images/feature_776_overlay.png" alt="Feature 776 Overlay" width="100%">
-  </div>
-</div>
+<table>
+  <tr>
+    <td><img src="readme_images/feature_329_overlay.png" alt="Feature 329 Overlay" width="100%"></td>
+    <td><img src="readme_images/feature_447_overlay.png" alt="Feature 447 Overlay" width="100%"></td>
+    <td><img src="readme_images/feature_485_overlay.png" alt="Feature 485 Overlay" width="100%"></td>
+  </tr>
+  <tr>
+    <td><img src="readme_images/feature_659_overlay.png" alt="Feature 659 Overlay" width="100%"></td>
+    <td><img src="readme_images/feature_770_overlay.png" alt="Feature 770 Overlay" width="100%"></td>
+    <td><img src="readme_images/feature_776_overlay.png" alt="Feature 776 Overlay" width="100%"></td>
+  </tr>
+</table>
 
 ## License
 
