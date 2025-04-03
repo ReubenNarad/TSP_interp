@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Use simple run names instead of full paths
-run_name="Test"
-sae_run_name="sae_l10.001_ef4.0_k0.1_04-01_12:42:08"
+run_name="Long_RandomUniform"
+sae_run_name="sae_l10.001_ef4.0_k0.1_04-03_10:39:46"
 
 # Construct full paths internally in the script
 run_path="./runs/${run_name}"

@@ -8,7 +8,7 @@ Solving combinatorial optimization problems can famously be NP-hard. Recent work
 
 This repository contains code for interpreting the learned representations of a transformer-based policy for the Traveling Salesman Problem (TSP). Currently, we use Sparse Autoencoders (SAE) trained on activations from the encoder output of the policy to extract features. We also include tooling for visualizing the features.
 
-Future goals include:
+### Future goals include:
 - Training probes (both dense linear and on SAE features) to probe for attributes of TSP instances, such as difficulty.
 - Training cross-layer transcoders to find causal relationships between layers, enabling an interpretable knowledge graph.
 
@@ -111,47 +111,46 @@ This will generate a gallery of feature activations across num_instances instanc
 
 The sparse autoencoder learns interpretable features from the policy's neural representations. Here are some examples of the discovered features:
 
-### Feature Gallery
+### Policy training
 
-![Feature Example 1](images/feature_example1.png)
-![Feature Example 2](images/feature_example2.png)
+<div style="display: flex; justify-content: space-between;">
+  <div style="flex: 1; margin-right: 10px;">
+    <img src="readme_images/small_circle.gif" alt="Small Circle Animation" width="100%">
+  </div>
+  <div style="flex: 1; margin-left: 10px;">
+    <img src="readme_images/uniform.gif" alt="Uniform Distribution Animation" width="100%">
+  </div>
+</div>
 
-<details>
-<summary>More visualizations</summary>
 
-Feature visualizations can be found in the run directories after running `analyze_features.sh`. The script generates visualizations like:
+### Some interesting SAE features
 
-- Feature activations on individual instances
-- Feature overlays across multiple instances
-- Solution paths with feature activation overlays
-
-Example paths to visualization directories:
-```
-runs/[run_name]/sae/sae_runs/[sae_run_name]/feature_analysis/
-```
-
-To add more visualizations to this README, copy them to the `images/` directory and link them here.
-
-</details>
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between;">
+  <div style="flex: 0 0 30%; margin-bottom: 15px;">
+    <img src="readme_images/feature_329_overlay.png" alt="Feature 329 Overlay" width="100%">
+  </div>
+  <div style="flex: 0 0 30%; margin-bottom: 15px;">
+    <img src="readme_images/feature_447_overlay.png" alt="Feature 447 Overlay" width="100%">
+  </div>
+  <div style="flex: 0 0 30%; margin-bottom: 15px;">
+    <img src="readme_images/feature_485_overlay.png" alt="Feature 485 Overlay" width="100%">
+  </div>
+  <div style="flex: 0 0 30%;">
+    <img src="readme_images/feature_659_overlay.png" alt="Feature 659 Overlay" width="100%">
+  </div>
+  <div style="flex: 0 0 30%;">
+    <img src="readme_images/feature_770_overlay.png" alt="Feature 770 Overlay" width="100%">
+  </div>
+  <div style="flex: 0 0 30%;">
+    <img src="readme_images/feature_776_overlay.png" alt="Feature 776 Overlay" width="100%">
+  </div>
+</div>
 
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Acknowledgments
-
+- [RL4CO](https://rl4.co/) for implementation of RL for the TSP
 - [Concorde TSP Solver](http://www.math.uwaterloo.ca/tsp/concorde.html) for optimal solutions
-
-## Citation
-
-If you use this code in your research, please cite:
-
-```
-@misc{TSP-RL,
-  author = {Your Name},
-  title = {TSP-RL: Interpretable Reinforcement Learning for the Traveling Salesman Problem},
-  year = {2024},
-  publisher = {GitHub},
-  url = {https://github.com/yourusername/tsp-rl}
-}
 ``` 

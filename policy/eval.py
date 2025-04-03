@@ -24,7 +24,7 @@ def main(args):
     # Render the baseline (optimal) solution
     baseline_dist_for_instance = -baseline["rewards"][0][plot_instance].item()
     fig = env.render(instance[plot_instance], baseline["actions"][0][plot_instance])
-    plt.title(f"Baseline (Optimal) Distance: {baseline_dist_for_instance:.2f}")
+    plt.title(f"Optimal Distance: {baseline_dist_for_instance:.2f}")
     plt.savefig(f'{run_path}/optimal_solution_{plot_instance}.png')
     plt.close()
 
@@ -116,6 +116,8 @@ def main(args):
     plt.axhline(y=baseline_distance, color="red", linestyle="--", label="Baseline (Optimal)")
     plt.xlabel("Epoch")
     plt.ylabel("Distance")
+    plt.ylim(baseline_distance / 1.1, baseline_distance * 1.2)
+    plt.yscale('log')
     plt.title(f"Average Distance per Training Epoch vs. Baseline (every {step} epochs)")
     plt.legend()
     plt.savefig(f'{run_path}/train_plot.png')

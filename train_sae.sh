@@ -1,6 +1,6 @@
 echo "Training SAE"
 
-run_name="Test"
+run_name="Long_RandomUniform"
 
 # for l1_coef in 0.001 0.0001
 # do
@@ -12,7 +12,7 @@ run_name="Test"
 l1_coef=0.001
 expansion_factor=4.0
 k_ratio=0.1
-num_epochs=10
+num_epochs=20
 
 python -m sae.train_topk \
   --run_dir ./runs/$run_name \

@@ -4,26 +4,78 @@ from torch.distributions import Uniform
 import math
 
 class Uniform:
+    """Samples TSP instances with node coordinates uniformly distributed from (0,0) to (1,1)
     """
-    Samples points from a uniform distribution.
-    """
-    def __init__(self, min_x=0.0, max_x=1.0, min_y=0.0, max_y=1.0):
-        super().__init__()
-        self.min_x = min_x
-        self.max_x = max_x
-        self.min_y = min_y
-        self.max_y = max_y
+    def __init__(self, num_loc=20):
+        self.num_loc = num_loc
 
     def sample(self, size):
-        batch_size, num_loc, _ = size
-        
-        # Sample x and y coordinates separately
-        x_coords = torch.rand(batch_size, num_loc) * (self.max_x - self.min_x) + self.min_x
-        y_coords = torch.rand(batch_size, num_loc) * (self.max_y - self.min_y) + self.min_y
-        
-        # Stack them together
-        coords = torch.stack([x_coords, y_coords], dim=-1)
-        return coords
+        return torch.rand(size[0], self.num_loc, 2)
+
+
+class RandomUniform:
+    """Samples TSP instances where node coordinates are uniformly distributed
+    within a rectangle. For each instance:
+    - the bottom-left (min_x, min_y) corner is sampled from [0, 0.5] x [0, 0.5]
+    - the top-right (max_x, max_y) corner is sampled from [0.5, 1] x [0.5, 1]
+    These corners define the sampling rectangle for that instance's nodes.
+    """
+    def __init__(self, num_loc=20, min_coord_range=(0.0, 0.5), max_coord_range=(0.5, 1.0)):
+        self.num_loc = num_loc
+        # Define the fixed ranges for sampling corners
+        self.min_coord_range = min_coord_range
+        self.max_coord_range = max_coord_range
+
+    def sample(self, batch_size_arg):
+        """Samples batch_size instances using the defined corner sampling logic.
+
+        Returns:
+            locs: Tensor of shape [batch_size, num_loc, 2]
+        """
+        # Determine the integer batch size from the input argument
+        if isinstance(batch_size_arg, (list, tuple)):
+            current_batch_size = batch_size_arg[0]
+        elif torch.is_tensor(batch_size_arg):
+            current_batch_size = batch_size_arg[0].item()
+        elif isinstance(batch_size_arg, int):
+            current_batch_size = batch_size_arg
+        else:
+            raise TypeError(f"Unsupported batch_size_arg type: {type(batch_size_arg)}")
+
+        # Determine device
+        if torch.is_tensor(batch_size_arg):
+             device = batch_size_arg.device
+        else:
+             # Default device if batch_size_arg is int or list
+             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+        # Sample bottom-left corners (min_x, min_y) from [0, 0.5] x [0, 0.5]
+        # Shape: [batch_size, 2]
+        min_coords = torch.rand(current_batch_size, 2, device=device) * (self.min_coord_range[1] - self.min_coord_range[0]) + self.min_coord_range[0]
+
+        # Sample top-right corners (max_x, max_y) from [0.5, 1] x [0.5, 1]
+        # Shape: [batch_size, 2]
+        max_coords = torch.rand(current_batch_size, 2, device=device) * (self.max_coord_range[1] - self.max_coord_range[0]) + self.max_coord_range[0]
+
+        # Expand dims for broadcasting with num_loc
+        # Shape: [batch_size, 1, 2]
+        min_coords = min_coords.unsqueeze(1)
+        max_coords = max_coords.unsqueeze(1)
+
+        # Calculate width and height for each instance's box
+        # Shape: [batch_size, 1, 2] -> [batch_size, 1, width/height]
+        box_dims = max_coords - min_coords
+        # Prevent division by zero or negative dimensions (shouldn't happen with these ranges)
+        box_dims = torch.clamp(box_dims, min=1e-6)
+
+        # Sample points uniformly within [0, 1) relative to the box dimensions
+        # Shape: [batch_size, num_loc, 2]
+        relative_coords = torch.rand(current_batch_size, self.num_loc, 2, device=device)
+
+        # Scale relative coordinates by box dimensions and shift by min coordinates
+        locs = relative_coords * box_dims + min_coords
+
+        return locs
 
 
 class DualUniform:
@@ -65,7 +117,7 @@ class DualUniform:
 
         return coords
 
-class RandomUniform:
+class NRandomUniform:
     """
     Draws a random number (1-5) -> n uniform distributions, then draws their boundaries from a uniform distribution.
     Each distribution is elongated/skinny with a random orientation.
@@ -254,45 +306,49 @@ if __name__ == "__main__":
     import seaborn as sns
     sns.set_theme(style="whitegrid")
 
+    # Initialize the new RandomUniform (takes only num_loc)
+    sampler = RandomUniform(num_loc=100, min_coord_range=(0.0, 0.3), max_coord_range=(0.7, 1.0))
 
-    hybrid_sampler = HybridSampler([
-        FuzzyCircle(
-            radius_mean_lower=0.3,
-            radius_mean_upper=0.4,
-            radius_std_lower=0.02,
-            radius_std_upper=0.1,
-            random_center=True,
-            center_x_range=(0.3, 0.7),
-            center_y_range=(0.3, 0.7)
-        ),
-        RandomUniform(
-            min_loc=0.0,
-            max_loc=1.0,
-            length_factor=5.0
-        ),
-        Uniform(
-            min_x=0.0,
-            max_x=1.0,
-            min_y=0.0,
-            max_y=1.0
-        )
-    ])
-    
-    # Sample points from the hybrid sampler
-    coords = hybrid_sampler.sample((10, 100, 2))
-    
-    # Create a figure with subplots for each batch
+    # hybrid_sampler = HybridSampler([
+    #     FuzzyCircle(
+    #         radius_mean_lower=0.3,
+    #         radius_mean_upper=0.4,
+    #         radius_std_lower=0.02,
+    #         radius_std_upper=0.1,
+    #         random_center=True,
+    #         center_x_range=(0.3, 0.7),
+    #         center_y_range=(0.3, 0.7)
+    #     ),
+    #     RandomUniform(
+    #         min_loc=0.0,
+    #         max_loc=1.0,
+    #         length_factor=5.0
+    #     ),
+    #     Uniform(
+    #         min_coord=0.0,
+    #         max_coord=1.0,
+    #         corner_min=0.0,
+    #         corner_max=0.0,
+    #         box_size=1.0
+    #     )
+    # ])
+
+    # Sample a batch of 10 instances
+    coords = sampler.sample(10) # Request 10 instances
+
+    # Create a figure with subplots for each batch (10 plots)
     fig, axes = plt.subplots(2, 5, figsize=(15, 6))
     axes = axes.flatten()
-    
+
     # Plot each batch
     for i in range(10):
-        coords_np = coords[i].cpu().numpy()
+        coords_np = coords[i].cpu().numpy() # coords[i] will have shape [100, 2]
         axes[i].scatter(coords_np[:, 0], coords_np[:, 1], alpha=0.5, s=10)
+        # Use fixed plot limits for consistency
         axes[i].set_xlim(-0.1, 1.1)
         axes[i].set_ylim(-0.1, 1.1)
         axes[i].set_title(f"Batch {i+1}")
-    
+
     plt.tight_layout()
-    plt.savefig("hybrid_sampler.png")
+    plt.savefig("random_uniform_split_range.png") # Changed filename
     plt.close()

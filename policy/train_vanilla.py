@@ -18,54 +18,39 @@ from policy.reinforce_clipped import REINFORCEClipped
 
 def main(args):
     # Define the location distribution
-    # loc_sampler = DualUniform((0, .2), (1, .4), (.2, 0), (.4, 1))
-    # generator = TSPGenerator(num_loc=args.num_loc, loc_sampler=loc_sampler)
-    # loc_sampler = RandomUniform(length_factor=5.0)
+    # sampler = DualUniform((0, .2), (1, .4), (.2, 0), (.4, 1))
+    # sampler = RandomUniform(length_factor=5.0)
 
     # base_sampler = Uniform(min_x=0.0, max_x=1.0, min_y=0.0, max_y=1.0)
 
-    # hybrid_sampler = HybridSampler(
-    #     dist1=FuzzyCircle(
-    #         radius_mean_lower=0.3,
-    #         radius_mean_upper=0.6,
-    #         radius_std_lower=0.02,
-    #         radius_std_upper=0.05,
-    #         center=(0.5, 0.5)
-    #     ),
-    #     dist2=FuzzyCircle(
-    #         radius_mean_lower=0.2,
-    #         radius_mean_upper=0.3,
-    #         radius_std_lower=0.02,
-    #         radius_std_upper=0.05,
-    #         center=(0.4, 0.4)
-    #     )
-    # )
+    sampler = RandomUniform(num_loc=100, min_coord_range=(0.0, 0.3), max_coord_range=(0.7, 1.0))
+
 
     # Hybrid sampler of uniform, random uniform, and fuzzy circle
-    hybrid_sampler = HybridSampler([
-        FuzzyCircle(
-            radius_mean_lower=0.3,
-            radius_mean_upper=0.4,
-            radius_std_lower=0.02,
-            radius_std_upper=0.1,
-            random_center=True,
-            center_x_range=(0.3, 0.7),
-            center_y_range=(0.3, 0.7)
-        ),
-        RandomUniform(
-            min_loc=0.0,
-            max_loc=1.0,
-            length_factor=5.0
-        ),
-        Uniform(
-            min_x=0.0,
-            max_x=1.0,
-            min_y=0.0,
-            max_y=1.0
-        )
-    ])
+    # sampler = HybridSampler([
+    #     FuzzyCircle(
+    #         radius_mean_lower=0.3,
+    #         radius_mean_upper=0.4,
+    #         radius_std_lower=0.02,
+    #         radius_std_upper=0.1,
+    #         random_center=True,
+    #         center_x_range=(0.3, 0.7),
+    #         center_y_range=(0.3, 0.7)
+    #     ),
+    #     RandomUniform(
+    #         min_loc=0.0,
+    #         max_loc=1.0,
+    #         length_factor=5.0
+    #     ),
+    #     Uniform(
+    #         min_x=0.0,
+    #         max_x=1.0,
+    #         min_y=0.0,
+    #         max_y=1.0
+    #     )
+    # ])
 
-    generator = TSPGenerator(num_loc=args.num_loc, loc_sampler=hybrid_sampler)
+    generator = TSPGenerator(num_loc=args.num_loc, loc_sampler=sampler)
     env = TSPEnv(generator=generator)
     
 

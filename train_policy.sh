@@ -1,26 +1,26 @@
 #!/bin/bash
 
 # Train config
-num_epochs=10
-num_instances=10_000
+num_epochs=2000
+num_instances=100_000
 num_val=100
 num_loc=100
-batch_size=512
-temperature=1.0
-lr=1e-5
+batch_size=1024
+temperature=0.4
+lr=5e-6
 checkpoint_freq=20
 dropout=0.1
 attention_dropout=0.1
 
 # Load from checkpoint (set to empty string to start from scratch)
-load_checkpoint=""
+load_checkpoint="1260"
 
 # Model config
 embed_dim=256
 n_encoder_layers=5
 
 # Run name
-run_name="Test"
+run_name="Long_RandomUniform"
 
 
 

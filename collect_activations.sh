@@ -1,6 +1,6 @@
 echo "Collecting activations"
 
-run_name="Test"
+run_name="Long_RandomUniform"
 
 python -m sae.collect_activations \
  --run_name $run_name \
