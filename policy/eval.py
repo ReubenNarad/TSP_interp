@@ -71,52 +71,20 @@ def main(args):
         avg_dist = -td_epoch["rewards"][0].mean().item() if isinstance(td_epoch["rewards"], list) else -td_epoch["rewards"].mean().item()
         epoch_distances.append(avg_dist)
 
-    # 5) Plot and fit double exponential decay
+    # 5) Plot training progress (without exponential decay curve)
     plt.figure(figsize=(8, 5))
     
-    # Adjust start_epoch based on available data
-    min_epochs_for_fit = 3  # Minimum number of points needed for a reasonable fit
-    start_epoch = min(10, n_epochs // 2)  # Use either 10 or half of total epochs
-    start_idx = start_epoch // step
-    
-    epochs = np.array(range(0, n_epochs, step))  # Changed to start from 0
+    # Use all available data points
+    epochs = np.array(range(0, n_epochs, step))
     distances = np.array(epoch_distances)
-    
-    # Only perform curve fitting if we have enough data points
-    if len(distances) >= min_epochs_for_fit:
-        # Modified double exponential decay function with fixed asymptote
-        def double_exp_decay(x, a1, b1, a2, b2):
-            return a1 * np.exp(-b1 * x) + a2 * np.exp(-b2 * x) + baseline_distance
-        
-        # Initial guess: one fast decay and one slow decay component
-        p0 = [0.5, 0.01, 0.5, 0.001]
-        try:
-            popt, pcov = curve_fit(double_exp_decay, epochs, distances, p0=p0, maxfev=10000)
-            a1, b1, a2, b2 = popt
-            
-            # Generate smooth curve for plotting
-            x_smooth = np.linspace(0, n_epochs, 1000)  # Changed to start from 0
-            y_smooth = double_exp_decay(x_smooth, a1, b1, a2, b2)
-            
-            # Print fitting results
-            print(f"\nDouble Exponential Decay Fit Results:")
-            print(f"Fast component: {a1:.3f} * exp(-{b1:.6f} * x)")
-            print(f"Slow component: {a2:.3f} * exp(-{b2:.6f} * x)")
-            print(f"Fixed asymptote (baseline): {baseline_distance:.3f}")
-            
-            plt.plot(x_smooth, y_smooth, 'g:', label='Double Exp Fit (Fixed Asymptote)')
-        except (RuntimeError, TypeError) as e:
-            print(f"Curve fitting failed: {e}")
-    else:
-        print(f"Not enough epochs for curve fitting (need at least {min_epochs_for_fit}, got {len(distances)})")
     
     print(f"Current best distance: {min(epoch_distances):.3f}")
     
-    plt.plot(range(0, n_epochs, step), epoch_distances, marker="o", markersize=2, label="Avg Distance per Epoch")
+    plt.plot(epochs, epoch_distances, marker="o", markersize=2, label="Avg Distance per Epoch")
     plt.axhline(y=baseline_distance, color="red", linestyle="--", label="Baseline (Optimal)")
     plt.xlabel("Epoch")
     plt.ylabel("Distance")
-    plt.ylim(baseline_distance / 1.1, baseline_distance * 1.2)
+    plt.ylim(baseline_distance / 1.1, baseline_distance * 1.5)
     plt.yscale('log')
     plt.title(f"Average Distance per Training Epoch vs. Baseline (every {step} epochs)")
     plt.legend()

@@ -1,0 +1,11 @@
+Analysis of 1 TSP instances with SAE features
+Run: Test_Clusters_8_layers
+SAE: sae_l10.001_ef4.0_k0.1_04-10_11:06:06
+
+Instance 0 - Top 5 Feature-Cluster Matches:
+  1. Feature 803 <-> Cluster 1 | Corr: 0.9170, F1: 0.4274
+  2. Feature 209 <-> Cluster 1 | Corr: 0.9004, F1: 0.4762
+  3. Feature 568 <-> Cluster 1 | Corr: 0.8976, F1: 0.4000
+  4. Feature 677 <-> Cluster 3 | Corr: 0.8696, F1: 0.4000
+  5. Feature 633 <-> Cluster 3 | Corr: 0.8646, F1: 0.4425
+

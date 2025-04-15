@@ -1,4 +1,6 @@
-# This is where we will load up the SAE model and visualize the leaned features
+# TODO: Add a measure of how much of a feature is entirely dependent on location 
+# i.e. difference in activations between 2 similar-located nodes
+# Idea: run a logistic regression over the activations, then the loss represents
 
 import os
 import sys
@@ -717,7 +719,8 @@ class FeatureAnalyzer:
         return overlay_dir
     
     def analyze_instances(self, num_instances=10, batch_size=16, generate_overlays=True,
-                         show_solution=True, num_features=10, skip_multi_feature=False):
+                         show_solution=True, num_features=10, skip_multi_feature=False,
+                         html_only=False):
         """
         Analyze multiple instances and visualize feature activations.
         
@@ -728,7 +731,43 @@ class FeatureAnalyzer:
             show_solution: Whether to overlay the TSP solution paths
             num_features: Number of top features to analyze
             skip_multi_feature: If True, skip generating multi-feature visualizations
+            html_only: If True, skip image generation and only regenerate the HTML index
         """
+        # If html_only is True, just load the activation index and create the HTML
+        if html_only:
+            print("HTML-only mode: Skipping image generation and loading activation index...")
+            
+            # Load activation index from file
+            index_path = self.viz_dir / "activation_index.json"
+            if not index_path.exists():
+                raise FileNotFoundError(f"Activation index not found at {index_path}. Cannot use html_only mode.")
+            
+            with open(index_path, "r") as f:
+                serializable_index = json.load(f)
+                
+            # Convert string keys back to integers for feature indices
+            self.activation_index = {}
+            for instance_key, features in serializable_index.items():
+                self.activation_index[instance_key] = {
+                    int(feat_idx): float(activation) 
+                    for feat_idx, activation in features.items()
+                }
+            
+            # Get feature indices
+            if self.feature_indices is None:
+                self.feature_indices = sorted(list({
+                    int(feat_idx) 
+                    for features in self.activation_index.values() 
+                    for feat_idx in features.keys()
+                }))
+            
+            print(f"Loaded activation index with {len(self.activation_index)} instances")
+            print(f"Found {len(self.feature_indices)} features")
+            
+            # Create an HTML index file for easy browsing
+            self.create_html_index()
+            return
+        
         print(f"Analyzing {num_instances} instances...")
         
         # Get feature indices to analyze
@@ -796,7 +835,7 @@ class FeatureAnalyzer:
         self.create_html_index()
     
     def create_html_index(self):
-        """Create an HTML index for easy browsing of visualizations"""
+        """Create an HTML index for easy browsing of visualizations with dropdown selectors"""
         index_path = self.viz_dir / "index.html"
         
         with open(index_path, "w") as f:
@@ -804,134 +843,249 @@ class FeatureAnalyzer:
             f.write("<html><head><title>SAE Feature Analysis</title>\n")
             f.write("<style>\n")
             f.write("body { font-family: Arial, sans-serif; margin: 20px; }\n")
-            f.write(".container { display: flex; flex-wrap: wrap; }\n")
+            f.write(".container { margin: 20px 0; }\n")
             f.write(".feature { margin: 10px; padding: 10px; border: 1px solid #ccc; }\n")
             f.write(".feature-title { font-weight: bold; margin-bottom: 10px; }\n")
-            f.write(".instance-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }\n")
-            f.write(".instance { margin: 5px; }\n")
-            f.write("img { max-width: 300px; border: 1px solid #eee; }\n")
-            f.write(".collapsed { display: none; }\n")
-            f.write(".collapsible { cursor: pointer; padding: 10px; background-color: #f1f1f1; border: none; text-align: left; outline: none; font-size: 16px; font-weight: bold; width: 100%; }\n")
-            f.write(".active, .collapsible:hover { background-color: #ddd; }\n")
-            f.write(".collapsible:after { content: '\\002B'; float: right; }\n") 
-            f.write(".active:after { content: '\\2212'; }\n")
+            
+            # Adjust the grid template to be more flexible
+            f.write(".instance-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }\n")
+            
+            f.write(".instance { margin: 5px; text-align: center; }\n")
+            
+            # Set different image sizes for different contexts
+            f.write(".feature-overlay-img { max-width: 800px; max-height: 600px; border: 1px solid #eee; margin: 0 auto; display: block; }\n")
+            f.write(".instance-img { width: 100%; border: 1px solid #eee; }\n")
+            
+            f.write(".view-container { display: none; }\n")
+            f.write(".control-panel { background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 20px; }\n")
+            f.write("select { padding: 8px; font-size: 16px; margin-right: 10px; }\n")
+            f.write(".image-container { text-align: center; margin: 20px auto; max-width: 800px; }\n")
             f.write("</style>\n")
             
-            # Add JavaScript for collapsible sections
+            # Add JavaScript for view switching and selection handling
             f.write("<script>\n")
-            f.write("function toggleSection(sectionId) {\n")
-            f.write("  var content = document.getElementById(sectionId);\n")
-            f.write("  var button = document.querySelector('[data-target=\"' + sectionId + '\"]');\n")
-            f.write("  if (content.style.display === 'block') {\n")
-            f.write("    content.style.display = 'none';\n")
-            f.write("    button.classList.remove('active');\n")
-            f.write("  } else {\n")
-            f.write("    content.style.display = 'block';\n")
-            f.write("    button.classList.add('active');\n")
+            f.write("function switchView() {\n")
+            f.write("  var viewType = document.getElementById('view-selector').value;\n")
+            f.write("  var containers = document.querySelectorAll('.view-container');\n")
+            f.write("  containers.forEach(function(container) {\n")
+            f.write("    container.style.display = 'none';\n")
+            f.write("  });\n")
+            f.write("  document.getElementById(viewType + '-view').style.display = 'block';\n")
+            
+            # Reset secondary selectors when switching views
+            f.write("  if (viewType === 'feature') {\n")
+            f.write("    updateFeatureView();\n")
+            f.write("  } else if (viewType === 'instance') {\n")
+            f.write("    updateInstanceView();\n")
             f.write("  }\n")
             f.write("}\n")
-            f.write("</script>\n")
             
+            # Function to handle feature selection
+            f.write("function updateFeatureView() {\n")
+            f.write("  var featureId = document.getElementById('feature-selector').value;\n")
+            f.write("  var featureContainers = document.querySelectorAll('.feature-content');\n")
+            f.write("  featureContainers.forEach(function(container) {\n")
+            f.write("    container.style.display = 'none';\n")
+            f.write("  });\n")
+            f.write("  document.getElementById('feature-' + featureId).style.display = 'block';\n")
+            f.write("}\n")
+            
+            # Function to handle instance selection
+            f.write("function updateInstanceView() {\n")
+            f.write("  var instanceId = document.getElementById('instance-selector').value;\n")
+            f.write("  var instanceContainers = document.querySelectorAll('.instance-content');\n")
+            f.write("  instanceContainers.forEach(function(container) {\n")
+            f.write("    container.style.display = 'none';\n")
+            f.write("  });\n")
+            f.write("  document.getElementById('instance-' + instanceId).style.display = 'block';\n")
+            f.write("}\n")
+            
+            f.write("</script>\n")
             f.write("</head><body>\n")
             
+            # Header
             f.write(f"<h1>SAE Feature Analysis</h1>\n")
             f.write(f"<p>Run: {self.run_path.name}</p>\n")
             f.write(f"<p>SAE: {self.sae_path.name}</p>\n")
             
-            # Add collapsible section for feature overlays
-            overlay_dir = self.viz_dir / "feature_overlays"
-            if overlay_dir.exists():
-                f.write("<button class='collapsible active' data-target='overlay-section' onclick='toggleSection(\"overlay-section\")'>Feature Overlays (Multiple Instances)</button>\n")
-                f.write("<div id='overlay-section' style='display: block;'>\n")
-                f.write("<div class='instance-grid'>\n")
-                
-                for feature_idx in self.feature_indices:
-                    overlay_file = f"feature_{feature_idx}_overlay.png"
-                    overlay_path = overlay_dir / overlay_file
-                    
-                    if overlay_path.exists():
-                        f.write(f"<div class='instance'>\n")
-                        f.write(f"<p>Feature {feature_idx} Overlay</p>\n")
-                        f.write(f"<a href='feature_overlays/{overlay_file}' target='_blank'>\n")
-                        f.write(f"<img src='feature_overlays/{overlay_file}'>\n")
-                        f.write(f"</a>\n")
-                        f.write("</div>\n")
-                
-                f.write("</div>\n")
-                f.write("</div>\n")
+            # Control panel with view selector
+            f.write("<div class='control-panel'>\n")
+            f.write("  <label for='view-selector'>Select View: </label>\n")
+            f.write("  <select id='view-selector' onchange='switchView()'>\n")
+            f.write("    <option value='feature'>Per Feature</option>\n")
+            f.write("    <option value='instance'>Per Instance</option>\n")
+            f.write("  </select>\n")
             
-            # Add collapsible section for multi-feature visualizations
-            if not hasattr(self, 'skip_multi_feature') or not self.skip_multi_feature:
-                f.write("<button class='collapsible' data-target='multi-feature-section' onclick='toggleSection(\"multi-feature-section\")'>Multi-Feature Visualizations</button>\n")
-                f.write("<div id='multi-feature-section' style='display: none;'>\n")
-                
-                # Only show the grid if we have instances
-                if self.activation_index:
-                    f.write("<div class='instance-grid'>\n")
-                    multi_feature_dir = "multi_feature"
-                    for i in range(len(self.activation_index)):
-                        instance_file = f"instance_{i}.png"
-                        f.write(f"<div class='instance'>\n")
-                        f.write(f"<p>Instance {i}</p>\n")
-                        f.write(f"<a href='{multi_feature_dir}/{instance_file}' target='_blank'>\n")
-                        f.write(f"<img src='{multi_feature_dir}/{instance_file}'>\n")
-                        f.write(f"</a>\n")
-                        f.write("</div>\n")
-                    f.write("</div>\n")
-                else:
-                    f.write("<p>No instances analyzed yet.</p>\n")
-                
-                f.write("</div>\n")
+            # Feature selector (initially shown)
+            f.write("  <span id='feature-control'>\n")
+            f.write("    <label for='feature-selector'>Select Feature: </label>\n")
+            f.write("    <select id='feature-selector' onchange='updateFeatureView()'>\n")
             
-            # Add collapsible section for individual features
-            f.write("<button class='collapsible' data-target='individual-features-section' onclick='toggleSection(\"individual-features-section\")'>Individual Features</button>\n")
-            f.write("<div id='individual-features-section' style='display: none;'>\n")
-            
-            if self.feature_indices:
-                for feature_idx in self.feature_indices:
-                    feature_section_id = f"feature-{feature_idx}-section"
-                    f.write(f"<button class='collapsible' data-target='{feature_section_id}' onclick='toggleSection(\"{feature_section_id}\")'> Feature {feature_idx}</button>\n")
-                    f.write(f"<div id='{feature_section_id}' style='display: none;'>\n")
-                    
-                    # Find top instances for this feature
-                    feature_activations = {
-                        instance: data[feature_idx] 
-                        for instance, data in self.activation_index.items() 
-                        if feature_idx in data
-                    }
-                    
-                    if feature_activations:
-                        # Sort instances by activation
-                        sorted_instances = sorted(
-                            feature_activations.items(), 
-                            key=lambda x: x[1], 
-                            reverse=True
-                        )
-                        
-                        # Show top 6 instances or fewer if not enough
-                        top_instances = sorted_instances[:min(6, len(sorted_instances))]
-                        f.write("<div class='instance-grid'>\n")
-                        for instance, activation in top_instances:
-                            instance_idx = int(instance.split("_")[1])
-                            instance_file = f"instance_{instance_idx}.png"
-                            feature_dir = f"feature_{feature_idx}"
-                            
-                            f.write(f"<div class='instance'>\n")
-                            f.write(f"<p>Activation: {activation:.4f}</p>\n")
-                            f.write(f"<a href='{feature_dir}/{instance_file}' target='_blank'>\n")
-                            f.write(f"<img src='{feature_dir}/{instance_file}'>\n")
-                            f.write(f"</a>\n")
-                            f.write("</div>\n")
-                        
-                        f.write("</div>\n")
-                    else:
-                        f.write("<p>No instances yet for this feature.</p>\n")
-                    
-                    f.write("</div>\n")  # Close feature section
+            # Sort features by activation if available
+            sorted_features = []
+            if self.activation_index:
+                # Calculate average activation per feature across all instances
+                feature_activations = {}
+                for instance_key, features in self.activation_index.items():
+                    for feat_idx, activation in features.items():
+                        if feat_idx not in feature_activations:
+                            feature_activations[feat_idx] = []
+                        feature_activations[feat_idx].append(activation)
+                
+                # Calculate average
+                avg_activations = {
+                    feat_idx: sum(activations)/len(activations) 
+                    for feat_idx, activations in feature_activations.items()
+                }
+                
+                # Sort by activation (descending)
+                sorted_features = sorted(
+                    avg_activations.items(), 
+                    key=lambda x: x[1], 
+                    reverse=True
+                )
             else:
-                f.write("<p>No features selected for analysis.</p>\n")
+                # If no activation data, just use the feature indices
+                sorted_features = [(idx, 0) for idx in self.feature_indices]
             
-            f.write("</div>\n")  # Close individual features section
+            # Add feature options
+            for i, (feat_idx, activation) in enumerate(sorted_features):
+                f.write(f"    <option value='{feat_idx}'>Feature {feat_idx} (Act: {activation:.4f})</option>\n")
+            
+            f.write("    </select>\n")
+            f.write("  </span>\n")
+            
+            # Instance selector (initially hidden)
+            f.write("  <span id='instance-control' style='display:none;'>\n")
+            f.write("    <label for='instance-selector'>Select Instance: </label>\n")
+            f.write("    <select id='instance-selector' onchange='updateInstanceView()'>\n")
+            
+            # Get all instances
+            instance_ids = []
+            for instance_key in self.activation_index.keys():
+                instance_idx = int(instance_key.split("_")[1])
+                instance_ids.append(instance_idx)
+            
+            # Sort instance IDs
+            instance_ids = sorted(instance_ids)
+            
+            # Add instance options
+            for instance_idx in instance_ids:
+                f.write(f"    <option value='{instance_idx}'>Instance {instance_idx}</option>\n")
+            
+            f.write("    </select>\n")
+            f.write("  </span>\n")
+            f.write("</div>\n")
+            
+            # Feature View Container
+            f.write("<div id='feature-view' class='view-container' style='display:block;'>\n")
+            
+            for feat_idx, activation in sorted_features:
+                display_style = "block" if feat_idx == sorted_features[0][0] else "none"
+                f.write(f"<div id='feature-{feat_idx}' class='feature-content' style='display:{display_style};'>\n")
+                
+                # Feature overlay
+                overlay_dir = self.viz_dir / "feature_overlays"
+                overlay_file = f"feature_{feat_idx}_overlay.png"
+                overlay_path = overlay_dir / overlay_file
+                
+                if overlay_path.exists():
+                    f.write("<div class='image-container'>\n")
+                    f.write(f"<img src='feature_overlays/{overlay_file}' alt='Feature {feat_idx} Overlay' class='feature-overlay-img'>\n")
+                    f.write("</div>\n")
+                
+                # Individual instances
+                f.write("<h3>Top Instances for Feature</h3>\n")
+                
+                # Find instances where this feature is most active
+                feature_instances = {}
+                for instance_key, features in self.activation_index.items():
+                    if feat_idx in features:
+                        instance_idx = int(instance_key.split("_")[1])
+                        feature_instances[instance_idx] = features[feat_idx]
+                
+                # Sort by activation (descending)
+                sorted_instances = sorted(
+                    feature_instances.items(),
+                    key=lambda x: x[1],
+                    reverse=True
+                )
+                
+                # Show all instances instead of just top 6
+                f.write("<div class='instance-grid'>\n")
+                for instance_idx, activation in sorted_instances: 
+                    instance_file = f"instance_{instance_idx}.png"
+                    feature_dir = f"feature_{feat_idx}"
+                    
+                    f.write(f"<div class='instance'>\n")
+                    f.write(f"<p>Instance {instance_idx} (Activation: {activation:.4f})</p>\n")
+                    f.write(f"<a href='{feature_dir}/{instance_file}' target='_blank'>\n")
+                    f.write(f"<img src='{feature_dir}/{instance_file}' class='instance-img'>\n")
+                    f.write(f"</a>\n")
+                    f.write("</div>\n")
+                
+                f.write("</div>\n")  # Close instance-grid
+                f.write("</div>\n")  # Close feature-content
+            
+            f.write("</div>\n")  # Close feature-view
+            
+            # Instance View Container
+            f.write("<div id='instance-view' class='view-container'>\n")
+            
+            for instance_idx in instance_ids:
+                display_style = "block" if instance_idx == instance_ids[0] else "none"
+                f.write(f"<div id='instance-{instance_idx}' class='instance-content' style='display:{display_style};'>\n")
+                
+                f.write(f"<h2>Instance {instance_idx} Analysis</h2>\n")
+                
+                # All features for this instance
+                f.write("<h3>Features Activation</h3>\n")
+                
+                # Sort features by activation on this instance
+                instance_key = f"instance_{instance_idx}"
+                if instance_key in self.activation_index:
+                    features = self.activation_index[instance_key]
+                    sorted_instance_features = sorted(
+                        features.items(),
+                        key=lambda x: x[1],
+                        reverse=True
+                    )
+                    
+                    f.write("<div class='instance-grid'>\n")
+                    for feat_idx, activation in sorted_instance_features:
+                        instance_file = f"instance_{instance_idx}.png"
+                        feature_dir = f"feature_{feat_idx}"
+                        
+                        f.write(f"<div class='instance'>\n")
+                        f.write(f"<p>Feature {feat_idx} (Activation: {activation:.4f})</p>\n")
+                        f.write(f"<a href='{feature_dir}/{instance_file}' target='_blank'>\n")
+                        f.write(f"<img src='{feature_dir}/{instance_file}' class='instance-img'>\n")
+                        f.write(f"</a>\n")
+                        f.write("</div>\n")
+                    
+                    f.write("</div>\n")  # Close instance-grid
+                
+                f.write("</div>\n")  # Close instance-content
+            
+            f.write("</div>\n")  # Close instance-view
+            
+            # Add JavaScript to handle initial state
+            f.write("<script>\n")
+            f.write("document.addEventListener('DOMContentLoaded', function() {\n")
+            f.write("  switchView();\n")
+            f.write("  document.getElementById('view-selector').addEventListener('change', function() {\n")
+            f.write("    // Toggle visibility of the appropriate selector\n")
+            f.write("    if (this.value === 'feature') {\n")
+            f.write("      document.getElementById('feature-control').style.display = 'inline';\n")
+            f.write("      document.getElementById('instance-control').style.display = 'none';\n")
+            f.write("    } else {\n")
+            f.write("      document.getElementById('feature-control').style.display = 'none';\n")
+            f.write("      document.getElementById('instance-control').style.display = 'inline';\n")
+            f.write("    }\n")
+            f.write("  });\n")
+            f.write("});\n")
+            f.write("</script>\n")
+            
             f.write("</body></html>\n")
         
         print(f"Created HTML index at {index_path}")
@@ -961,6 +1115,8 @@ def main():
                        help="Show solution paths side-by-side with feature activations")
     parser.add_argument("--no_multi_feature", action="store_true",
                        help="Skip generating multi-feature visualizations")
+    parser.add_argument("--html_only", action="store_true",
+                       help="Skip image generation and only regenerate the HTML index")
     
     args = parser.parse_args()
     
@@ -978,7 +1134,8 @@ def main():
         generate_overlays=not args.no_overlays,
         show_solution=args.show_solution,
         num_features=args.num_features,
-        skip_multi_feature=args.no_multi_feature
+        skip_multi_feature=args.no_multi_feature,
+        html_only=args.html_only
     )
 
 if __name__ == "__main__":

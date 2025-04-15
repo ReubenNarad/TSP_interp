@@ -16,6 +16,8 @@ class REINFORCEClipped(REINFORCE):
     Args:
         clip_val: Maximum allowed value for gradient clipping
         clip_type: Type of gradient clipping ('norm' or 'value')
+        lr_decay: Learning rate decay type ('none', 'cosine', or 'linear')
+        min_lr: Minimum learning rate at end of training
         **kwargs: Arguments passed to parent REINFORCE class
     """
 
@@ -26,13 +28,19 @@ class REINFORCEClipped(REINFORCE):
         baseline: Union[REINFORCEBaseline, str] = "rollout",
         clip_val: float = 10.0,
         clip_type: str = "norm",
+        lr_decay: str = "none",
+        min_lr: float = 1e-6,
         **kwargs,
     ):
         super().__init__(env, policy, baseline, **kwargs)
         
         self.clip_val = clip_val
         self.clip_type = clip_type
+        self.lr_decay = lr_decay
+        self.min_lr = min_lr
+        
         assert clip_type in ["norm", "value"], "clip_type must be either 'norm' or 'value'"
+        assert lr_decay in ["none", "cosine", "linear"], "lr_decay must be 'none', 'cosine', or 'linear'"
         
         # Disable automatic optimization
         self.automatic_optimization = False
@@ -75,23 +83,44 @@ class REINFORCEClipped(REINFORCE):
         opt.step()
         
         return result
+    
+    def on_train_epoch_end(self):
+        """Step the scheduler if one is being used"""
+        if self.lr_decay != "none":
+            sch = self.lr_schedulers()
+            sch.step()
+        
+        # Log the current learning rate regardless
+        current_lr = self.optimizers().param_groups[0]['lr']
+        self.log('learning_rate', current_lr, prog_bar=True)
 
     def configure_optimizers(self):
-        """Override to prevent double optimization"""
+        """Configure optimizer and scheduler based on lr_decay setting"""
         optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams.optimizer_kwargs["lr"])
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer,
-            mode='min',  # reduce LR when reward stops improving
-            factor=0.5,  # multiply LR by this factor
-            patience=10,  # number of epochs with no improvement after which LR will be reduced
-            verbose=True
-        )
+        
+        # If no decay is requested, return just the optimizer
+        if self.lr_decay == "none":
+            return optimizer
+        
+        # Otherwise, set up the appropriate scheduler
+        if self.lr_decay == "cosine":
+            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+                optimizer, 
+                T_max=self.trainer.max_epochs,
+                eta_min=self.min_lr
+            )
+        elif self.lr_decay == "linear":
+            lambda_fn = lambda epoch: max(1.0 - (1 - self.min_lr / self.hparams.optimizer_kwargs["lr"]) * 
+                                         (epoch / self.trainer.max_epochs), self.min_lr / self.hparams.optimizer_kwargs["lr"])
+            scheduler = torch.optim.lr_scheduler.LambdaLR(
+                optimizer,
+                lr_lambda=lambda_fn
+            )
         
         return {
             "optimizer": optimizer,
             "lr_scheduler": {
                 "scheduler": scheduler,
-                "monitor": "val/reward",  # metric to track
                 "interval": "epoch",
                 "frequency": 1
             }

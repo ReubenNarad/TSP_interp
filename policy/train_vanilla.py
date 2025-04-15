@@ -12,43 +12,13 @@ from rl4co.envs import TSPEnv
 from rl4co.envs.routing import TSPEnv, TSPGenerator
 from rl4co.utils.trainer import RL4COTrainer
 
-from distributions import Uniform, DualUniform, RandomUniform, FuzzyCircle, HybridSampler
+from distributions import *
 from policy.policy_hooked import HookedAttentionModelPolicy
 from policy.reinforce_clipped import REINFORCEClipped
 
 def main(args):
     # Define the location distribution
-    # sampler = DualUniform((0, .2), (1, .4), (.2, 0), (.4, 1))
-    # sampler = RandomUniform(length_factor=5.0)
-
-    # base_sampler = Uniform(min_x=0.0, max_x=1.0, min_y=0.0, max_y=1.0)
-
-    sampler = RandomUniform(num_loc=100, min_coord_range=(0.0, 0.3), max_coord_range=(0.7, 1.0))
-
-
-    # Hybrid sampler of uniform, random uniform, and fuzzy circle
-    # sampler = HybridSampler([
-    #     FuzzyCircle(
-    #         radius_mean_lower=0.3,
-    #         radius_mean_upper=0.4,
-    #         radius_std_lower=0.02,
-    #         radius_std_upper=0.1,
-    #         random_center=True,
-    #         center_x_range=(0.3, 0.7),
-    #         center_y_range=(0.3, 0.7)
-    #     ),
-    #     RandomUniform(
-    #         min_loc=0.0,
-    #         max_loc=1.0,
-    #         length_factor=5.0
-    #     ),
-    #     Uniform(
-    #         min_x=0.0,
-    #         max_x=1.0,
-    #         min_y=0.0,
-    #         max_y=1.0
-    #     )
-    # ])
+    sampler = Clusters(min_clusters=3, max_clusters=7)
 
     generator = TSPGenerator(num_loc=args.num_loc, loc_sampler=sampler)
     env = TSPEnv(generator=generator)
@@ -60,6 +30,9 @@ def main(args):
     num_epochs = args.num_epochs
     num_instances = args.num_instances
     num_val = args.num_val
+
+
+
 
     class LossCallback(Callback):
         def __init__(self):
@@ -106,6 +79,11 @@ def main(args):
                 )
                 trainer.save_checkpoint(checkpoint_path)
 
+    class NewLineCallback(Callback):
+        """For pretty training :3"""
+        def on_train_epoch_end(self, trainer, pl_module):
+            print()
+
     # Policy: AM with dropout
     policy = HookedAttentionModelPolicy(env_name=env.name,
                                 embed_dim=args.embed_dim,
@@ -125,6 +103,9 @@ def main(args):
                         train_data_size=num_instances,
                         val_data_size=num_val,
                         optimizer_kwargs={"lr": args.lr},
+                        clip_val=args.clip_val,
+                        lr_decay=args.lr_decay,
+                        min_lr=args.min_lr,
                         )
 
     run_name = f"./runs/{args.run_name}"
@@ -146,6 +127,8 @@ def main(args):
         "checkpoint_freq": args.checkpoint_freq,
         "dropout": args.dropout,
         "attention_dropout": args.attention_dropout,
+        "lr_decay": args.lr_decay,
+        "min_lr": args.min_lr,
     }
     with open(f"{run_name}/config.json", "w") as f:
         json.dump(config, f)
@@ -156,6 +139,7 @@ def main(args):
     loss_callback = LossCallback()
     results_callback = ResultsCallback(run_name)
     checkpoint_callback = CheckpointCallback(run_name, args.checkpoint_freq)
+
 
     if args.load_checkpoint:
         # Check if it's just an epoch number
@@ -185,13 +169,25 @@ def main(args):
         accelerator="gpu",
         devices=1,
         logger=CSVLogger(save_dir=run_name, name="logs"),
-        callbacks=[loss_callback, results_callback, checkpoint_callback],
+        callbacks=[loss_callback, results_callback, checkpoint_callback, NewLineCallback()],
         gradient_clip_val=None,
     )
 
     print("Training...")
     if checkpoint_path:
         trainer.fit(model, ckpt_path=checkpoint_path)
+        if checkpoint_path and args.reset_optimizer:
+            print("Resetting optimizer and scheduler states")
+            # Reset optimizer states after loading the model
+            for optimizer in trainer.optimizers:
+                for param_group in optimizer.param_groups:
+                    param_group['lr'] = args.lr
+            
+            # Reset scheduler states if any
+            if trainer.lr_schedulers:
+                for scheduler in trainer.lr_schedulers:
+                    if hasattr(scheduler, 'base_lrs'):
+                        scheduler.base_lrs = [args.lr] * len(scheduler.base_lrs)
     else:
         trainer.fit(model)
     print("Done")
@@ -214,8 +210,17 @@ if __name__ == "__main__":
                        help="Dropout rate for feedforward layers")
     parser.add_argument("--attention_dropout", type=float, default=0.0,
                        help="Dropout rate for attention layers")
+    parser.add_argument("--clip_val", type=float, default=10,
+                       help="Gradient clipping value")
     parser.add_argument("--load_checkpoint", type=str, default=None,
                        help="Path to checkpoint file or epoch number to load (e.g., 'runs/run_name/checkpoints/checkpoint_epoch_260.ckpt' or just '260')")
+    parser.add_argument("--reset_optimizer", action="store_true",
+                       help="Reset optimizer and scheduler when loading from checkpoint")
+    parser.add_argument("--lr_decay", type=str, default="none", 
+                       choices=["none", "cosine", "linear"],
+                       help="Learning rate decay type")
+    parser.add_argument("--min_lr", type=float, default=1e-6,
+                       help="Minimum learning rate at end of training")
     args = parser.parse_args()
     main(args)
 

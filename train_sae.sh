@@ -1,6 +1,6 @@
 echo "Training SAE"
 
-run_name="Long_RandomUniform"
+run_name="Test_Clusters_8_layers"
 
 # for l1_coef in 0.001 0.0001
 # do

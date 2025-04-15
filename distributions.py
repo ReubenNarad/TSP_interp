@@ -240,6 +240,91 @@ class FuzzyCircle:
         return coords
 
 
+class Clusters:
+    """
+    Samples from a random number of gaussians, each with random mean and cov.
+    Creates new clusters for each sample() call with tight, compact clusters.
+    Allows points to extend beyond the [0,1] range.
+    """
+    def __init__(self, min_clusters=5, max_clusters=10):
+        super().__init__()
+        self.min_clusters = min_clusters
+        self.max_clusters = max_clusters
+
+    def sample(self, size):
+        batch_size, num_loc, _ = size
+        
+        # Get device from the input size if it's a tensor
+        device = size.device if torch.is_tensor(size) else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        
+        # Create empty tensor for coordinates
+        coords = torch.zeros(batch_size, num_loc, 2, device=device)
+        
+        # For each batch, create new clusters
+        for i in range(batch_size):
+            # Generate new clusters for this batch
+            n_clusters = torch.randint(self.min_clusters, self.max_clusters + 1, (1,)).item()
+            clusters = []
+            
+            for j in range(n_clusters):
+                # Define the cluster's mean (center)
+                mean = 0.1 + 0.8 * torch.rand(2, device=device)
+                
+                # Create a proper random covariance matrix with random orientation
+                # Generate random standard deviations for x and y directions
+                std_x = (0.004 + 0.002 * torch.rand(1, device=device)).sqrt()
+                std_y = (0.004 + 0.002 * torch.rand(1, device=device)).sqrt()
+                
+                # Generate random rotation angle (0 to 2π)
+                theta = 2 * math.pi * torch.rand(1, device=device)
+                
+                # Create rotation matrix
+                c, s = torch.cos(theta), torch.sin(theta)
+                rotation = torch.tensor([[c, -s], [s, c]], device=device).squeeze()
+                
+                # Create diagonal matrix with variance
+                scales = torch.diag(torch.tensor([std_x**2, std_y**2], device=device).squeeze())
+                
+                # Create covariance matrix: R * S * R^T
+                cov = rotation @ scales @ rotation.T
+                
+                clusters.append((mean, cov))
+            
+            # Calculate how many points to sample from each cluster
+            points_per_cluster = torch.full((n_clusters,), num_loc // n_clusters, device=device)
+            # Distribute remaining points
+            remainder = num_loc % n_clusters
+            if remainder > 0:
+                points_per_cluster[:remainder] += 1
+            
+            point_idx = 0
+            # Sample from each cluster
+            for c, (mean, cov) in enumerate(clusters):
+                n_points = points_per_cluster[c].item()
+                
+                # Generate samples from multivariate normal distribution
+                z = torch.randn(n_points, 2, device=device)
+                
+                # We need the Cholesky decomposition of the covariance matrix
+                try:
+                    L = torch.linalg.cholesky(cov)
+                    # Transform: x = μ + Lz
+                    samples = torch.matmul(z, L.T) + mean
+                except:
+                    # Fallback to simpler approach if cholesky fails
+                    std = torch.sqrt(torch.diag(cov))
+                    samples = torch.randn(n_points, 2, device=device) * std + mean
+                
+                coords[i, point_idx:point_idx + n_points] = samples
+                point_idx += n_points
+            
+            # Shuffle the points for this batch
+            idx = torch.randperm(num_loc, device=device)
+            coords[i] = coords[i][idx]
+        
+        # Removed the clamping to allow points outside [0,1]
+        return coords
+
 class HybridSampler:
     """
     A hybrid sampler that draws from multiple distributions with equal or specified probabilities.
@@ -306,35 +391,11 @@ if __name__ == "__main__":
     import seaborn as sns
     sns.set_theme(style="whitegrid")
 
-    # Initialize the new RandomUniform (takes only num_loc)
-    sampler = RandomUniform(num_loc=100, min_coord_range=(0.0, 0.3), max_coord_range=(0.7, 1.0))
-
-    # hybrid_sampler = HybridSampler([
-    #     FuzzyCircle(
-    #         radius_mean_lower=0.3,
-    #         radius_mean_upper=0.4,
-    #         radius_std_lower=0.02,
-    #         radius_std_upper=0.1,
-    #         random_center=True,
-    #         center_x_range=(0.3, 0.7),
-    #         center_y_range=(0.3, 0.7)
-    #     ),
-    #     RandomUniform(
-    #         min_loc=0.0,
-    #         max_loc=1.0,
-    #         length_factor=5.0
-    #     ),
-    #     Uniform(
-    #         min_coord=0.0,
-    #         max_coord=1.0,
-    #         corner_min=0.0,
-    #         corner_max=0.0,
-    #         box_size=1.0
-    #     )
-    # ])
+    # Initialize the sampler
+    sampler = Clusters(min_clusters=3, max_clusters=7)
 
     # Sample a batch of 10 instances
-    coords = sampler.sample(10) # Request 10 instances
+    coords = sampler.sample([10, 100, 2])  # 10 instances, 100 points per instance, 2D
 
     # Create a figure with subplots for each batch (10 plots)
     fig, axes = plt.subplots(2, 5, figsize=(15, 6))
@@ -342,13 +403,13 @@ if __name__ == "__main__":
 
     # Plot each batch
     for i in range(10):
-        coords_np = coords[i].cpu().numpy() # coords[i] will have shape [100, 2]
+        coords_np = coords[i].cpu().numpy()
         axes[i].scatter(coords_np[:, 0], coords_np[:, 1], alpha=0.5, s=10)
-        # Use fixed plot limits for consistency
-        axes[i].set_xlim(-0.1, 1.1)
-        axes[i].set_ylim(-0.1, 1.1)
+        # Set fixed plot limits from -0.5 to 1.5
+        axes[i].set_xlim(-0.2, 1.2)
+        axes[i].set_ylim(-0.2, 1.2)
         axes[i].set_title(f"Batch {i+1}")
 
     plt.tight_layout()
-    plt.savefig("random_uniform_split_range.png") # Changed filename
-    plt.close()
+    plt.savefig("clusters_distribution.png")
+    plt.show()
