@@ -68,18 +68,23 @@ def main(args):
     # --- Data Loading ---
     print("--- Loading Data ---")
     # Load config
-    with open(os.path.join(run_path, "config.json"), "r") as f:
+    config_path = os.path.join(run_path, "config.json")
+    print(f"Loading config from: {config_path}")
+    with open(config_path, "r") as f:
         config = json.load(f)
     # Load environment
     env_path = os.path.join(run_path, "env.pkl")
+    print(f"Loading environment from: {env_path}")
     with open(env_path, "rb") as f:
         env = pickle.load(f)
+    print("Environment loaded.")
 
     # Load generated instances and metrics from baseline_probe.pkl
     baseline_probe_path = os.path.join(probe_dir, "baseline_probe.pkl")
     print(f"Attempting to load probe data from: {baseline_probe_path}")
     with open(baseline_probe_path, "rb") as f:
         probe_data = pickle.load(f)
+    print("Probe data loaded.")
 
     if "locs" not in probe_data:
         raise KeyError("'locs' key not found in baseline_probe.pkl.")
@@ -87,10 +92,13 @@ def main(args):
     if "lp_nonzeros" not in probe_data or not isinstance(probe_data["lp_nonzeros"], list) or len(probe_data["lp_nonzeros"]) == 0:
          raise KeyError("'lp_nonzeros' key not found or has incorrect format.")
 
+    print("Processing loaded data...")
     locs = probe_data["locs"].to(device)
     # Target variable is now LP Nonzeros
     lp_nonzeros_list = probe_data["lp_nonzeros"][0]
     num_instances = locs.shape[0]
+    num_nodes = locs.shape[1]  # Number of nodes in each TSP instance
+    print(f"Number of nodes per instance: {num_nodes}")
     num_nonzeros = len(lp_nonzeros_list)
     print(f"DEBUG: Loaded locs shape: {locs.shape}, Found {num_nonzeros} LP nonzeros values.")
 
@@ -126,11 +134,14 @@ def main(args):
     valid_mask = (rows_np > 0) & (cols_np > 0) & (nonzeros_np >= 0) # Nonzeros can be 0
     # Only plot nonzeros histogram now
     nonzeros_np_valid = nonzeros_np[valid_mask]
+    print("Data processing complete.")
 
     # --- Plotting Section (Only Nonzeros Histogram) ---
+    print("--- Plotting Histogram ---")
     hist_path = os.path.join(probe_dir, 'lp_nonzeros_histogram.png')
     regenerate_plot = True # Or make this an arg
     if regenerate_plot:
+        print(f"Generating histogram plot at {hist_path}...")
         plt.figure(figsize=(10, 6))
         plt.hist(nonzeros_np_valid, bins=30, color='salmon', edgecolor='black')
         plt.title(f'Histogram of LP Nonzeros ({len(nonzeros_np_valid)} valid instances)')
@@ -140,6 +151,7 @@ def main(args):
         plt.savefig(hist_path)
         plt.close()
         print(f"Saved LP nonzeros histogram to {hist_path}")
+    print("--- Plotting Complete ---")
 
 
     # --- Activation Loading ---
@@ -147,7 +159,9 @@ def main(args):
     # Load model checkpoint
     checkpoint_dir = os.path.join(run_path, "checkpoints")
     checkpoint_path = os.path.join(checkpoint_dir, f"checkpoint_epoch_{args.epoch}.ckpt")
+    print(f"Checking for checkpoint at: {checkpoint_path}")
     if not os.path.exists(checkpoint_path):
+        print("Exact checkpoint not found, searching for latest...")
         import glob
         checkpoint_files = glob.glob(os.path.join(checkpoint_dir, "checkpoint_epoch_*.ckpt"))
         if not checkpoint_files: raise FileNotFoundError(f"No checkpoints found in {checkpoint_dir}")
@@ -155,6 +169,7 @@ def main(args):
         print(f"Using latest checkpoint: {checkpoint_path}")
 
     # Build policy and model
+    print("Building policy...")
     policy = HookedAttentionModelPolicy(
         env_name=env.name,
         embed_dim=config["embed_dim"],
@@ -162,18 +177,29 @@ def main(args):
         num_heads=8,
         temperature=config["temperature"],
     )
+    print("Loading model from checkpoint...")
     model = REINFORCEClipped.load_from_checkpoint(
         checkpoint_path, env=env, policy=policy, strict=False
     )
     model.eval().to(device)
     policy = model.policy.to(device)
+    print("Model loaded and put in eval mode.")
 
     # Get activations for the loaded instances
     instance_data_td = {"locs": locs}
+    print(f"Running encoder forward pass for {num_instances} instances...")
     with torch.no_grad():
         encoder_out, _ = policy.encoder(instance_data_td)
-        X_all = encoder_out.mean(dim=1) # Use mean activation across nodes
+        # No pooling - use the full encoder output
+        embed_dim = encoder_out.shape[2]
+        print(f"Encoder output shape: {encoder_out.shape}")
+        
+        # Reshape encoder output to [batch_size, num_nodes * embed_dim]
+        # This preserves all node-level information
+        X_all = encoder_out.reshape(num_instances, -1)
         feat_dim = X_all.shape[1]
+        print(f"Flattened feature dimension: {feat_dim}")
+    print(f"Encoder forward pass complete. Features shape: {X_all.shape}")
 
     # --- Normalize target values before training ---
     print("--- Normalizing target values ---")
@@ -199,8 +225,12 @@ def main(args):
 
     # --- Train Single Regression Probe ---
     print(f"\n--- Training Regression Probe (Predicting LP Nonzeros) ---")
+    print(f"Creating linear probe with input dim {feat_dim}")
     probe_reg = nn.Linear(feat_dim, 1).to(device)
-    optimizer_reg = optim.Adam(probe_reg.parameters(), lr=args.lr)
+    print(f"Number of parameters in probe: {sum(p.numel() for p in probe_reg.parameters())}")
+    
+    # Add L2 regularization to avoid overfitting with high-dimensional input
+    optimizer_reg = optim.Adam(probe_reg.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     loss_fn_reg = nn.MSELoss() # Use MSE for regression
 
     # Use the simplified training function
@@ -287,15 +317,20 @@ def main(args):
         print(f"Saved prediction scatter plot to {scatter_path}")
 
     # --- Save Results ---
+    print("--- Saving Results ---")
     # Update filenames for nonzeros probe
     model_name = "linear_probe_nonzeros.pt"
     log_name = "probe_train_log_nonzeros.json"
 
-    torch.save(probe_reg.state_dict(), os.path.join(probe_dir, model_name))
-    with open(os.path.join(probe_dir, log_name), "w") as f:
+    model_save_path = os.path.join(probe_dir, model_name)
+    print(f"Saving probe model state dict to {model_save_path}")
+    torch.save(probe_reg.state_dict(), model_save_path)
+    log_save_path = os.path.join(probe_dir, log_name)
+    print(f"Saving training log to {log_save_path}")
+    with open(log_save_path, "w") as f:
         json.dump(reg_log, f, indent=2)
-    print(f"Saved LP Nonzeros Regression probe to {os.path.join(probe_dir, model_name)}")
-    print(f"Saved training log to {os.path.join(probe_dir, log_name)}")
+    print(f"Saved LP Nonzeros Regression probe to {model_save_path}")
+    print(f"Saved training log to {log_save_path}")
 
     print("\n--- Probe Training Complete ---")
 
@@ -307,5 +342,6 @@ if __name__ == "__main__":
     parser.add_argument("--num_epochs", type=int, default=5000, help="Number of epochs for probe training (default: 5000)")
     parser.add_argument("--lr", type=float, default=1e-6, help="Learning rate (default: 1e-6)")
     parser.add_argument("--patience", type=int, default=50, help="Patience parameter for early stopping")
+    parser.add_argument("--weight_decay", type=float, default=1e-5, help="L2 regularization weight (default: 1e-5)")
     args = parser.parse_args()
     main(args) 
