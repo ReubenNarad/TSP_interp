@@ -1,6 +1,6 @@
 echo "Training SAE"
 
-run_name="Test_Clusters_8_layers"
+run_name="clip_tiny_lr_huge_embed_512_tight_clusters"
 
 # for l1_coef in 0.001 0.0001
 # do
@@ -11,7 +11,7 @@ run_name="Test_Clusters_8_layers"
 
 l1_coef=0.001
 expansion_factor=4.0
-k_ratio=0.1
+k_ratio=0.05
 num_epochs=20
 
 python -m sae.train_topk \
@@ -20,7 +20,7 @@ python -m sae.train_topk \
   --expansion_factor $expansion_factor \
   --batch_size 64 \
   --l1_coef $l1_coef \
-  --lr 1e-3 \
+  --lr 1e-4 \
   --num_epochs $num_epochs \
   --num_workers 4 \
   --reinit_dead \

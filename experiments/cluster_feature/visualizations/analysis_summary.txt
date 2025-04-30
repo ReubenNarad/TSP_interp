@@ -1,4 +1,4 @@
-Analysis of 1 TSP instances with SAE features
+Analysis of 10 TSP instances with SAE features
 Run: Test_Clusters_8_layers
 SAE: sae_l10.001_ef4.0_k0.1_04-10_11:06:06
 
@@ -8,4 +8,67 @@ Instance 0 - Top 5 Feature-Cluster Matches:
   3. Feature 568 <-> Cluster 1 | Corr: 0.8976, F1: 0.4000
   4. Feature 677 <-> Cluster 3 | Corr: 0.8696, F1: 0.4000
   5. Feature 633 <-> Cluster 3 | Corr: 0.8646, F1: 0.4425
+
+Instance 1 - Top 5 Feature-Cluster Matches:
+  1. Feature 342 <-> Cluster 0 | Corr: 0.9078, F1: 0.3509
+  2. Feature 516 <-> Cluster 1 | Corr: 0.8758, F1: 0.3333
+  3. Feature 570 <-> Cluster 4 | Corr: 0.8700, F1: 0.5195
+  4. Feature 343 <-> Cluster 0 | Corr: 0.8682, F1: 0.3419
+  5. Feature 568 <-> Cluster 4 | Corr: 0.8587, F1: 0.3361
+
+Instance 2 - Top 5 Feature-Cluster Matches:
+  1. Feature 569 <-> Cluster 0 | Corr: 0.8174, F1: 0.4396
+  2. Feature 593 <-> Cluster 0 | Corr: 0.7967, F1: 0.3390
+  3. Feature 677 <-> Cluster 2 | Corr: 0.7752, F1: 0.3333
+  4. Feature 753 <-> Cluster 0 | Corr: 0.7687, F1: 0.4651
+  5. Feature 384 <-> Cluster 2 | Corr: 0.7664, F1: 0.3604
+
+Instance 3 - Top 5 Feature-Cluster Matches:
+  1. Feature 549 <-> Cluster 5 | Corr: 0.8941, F1: 0.3077
+  2. Feature 343 <-> Cluster 5 | Corr: 0.7782, F1: 0.2759
+  3. Feature 544 <-> Cluster 4 | Corr: 0.7669, F1: 0.3596
+  4. Feature 973 <-> Cluster 5 | Corr: 0.7275, F1: 0.2832
+  5. Feature 568 <-> Cluster 1 | Corr: 0.7124, F1: 0.2957
+
+Instance 4 - Top 5 Feature-Cluster Matches:
+  1. Feature 516 <-> Cluster 0 | Corr: 0.9161, F1: 0.2906
+  2. Feature 803 <-> Cluster 2 | Corr: 0.8861, F1: 0.3178
+  3. Feature 570 <-> Cluster 3 | Corr: 0.8657, F1: 0.4250
+  4. Feature 653 <-> Cluster 0 | Corr: 0.8423, F1: 0.3063
+  5. Feature 342 <-> Cluster 5 | Corr: 0.8354, F1: 0.2883
+
+Instance 5 - Top 5 Feature-Cluster Matches:
+  1. Feature 887 <-> Cluster 4 | Corr: 0.8414, F1: 0.2963
+  2. Feature 698 <-> Cluster 0 | Corr: 0.7856, F1: 0.2906
+  3. Feature 664 <-> Cluster 5 | Corr: 0.7836, F1: 0.3168
+  4. Feature 209 <-> Cluster 4 | Corr: 0.7753, F1: 0.3265
+  5. Feature 714 <-> Cluster 2 | Corr: 0.7617, F1: 0.2931
+
+Instance 6 - Top 5 Feature-Cluster Matches:
+  1. Feature 570 <-> Cluster 2 | Corr: 0.8190, F1: 0.7561
+  2. Feature 588 <-> Cluster 2 | Corr: 0.7856, F1: 0.5197
+  3. Feature 568 <-> Cluster 2 | Corr: 0.7380, F1: 0.5000
+  4. Feature 271 <-> Cluster 1 | Corr: 0.6996, F1: 0.5789
+  5. Feature 729 <-> Cluster 0 | Corr: 0.6943, F1: 0.5366
+
+Instance 7 - Top 5 Feature-Cluster Matches:
+  1. Feature 47 <-> Cluster 0 | Corr: 0.8753, F1: 0.2931
+  2. Feature 753 <-> Cluster 0 | Corr: 0.8559, F1: 0.3953
+  3. Feature 844 <-> Cluster 0 | Corr: 0.8499, F1: 0.2931
+  4. Feature 89 <-> Cluster 0 | Corr: 0.8366, F1: 0.9032
+  5. Feature 343 <-> Cluster 1 | Corr: 0.8315, F1: 0.3036
+
+Instance 8 - Top 5 Feature-Cluster Matches:
+  1. Feature 810 <-> Cluster 0 | Corr: 0.9021, F1: 0.2906
+  2. Feature 714 <-> Cluster 0 | Corr: 0.8917, F1: 0.2906
+  3. Feature 708 <-> Cluster 1 | Corr: 0.8621, F1: 0.2906
+  4. Feature 1022 <-> Cluster 0 | Corr: 0.8569, F1: 0.4198
+  5. Feature 905 <-> Cluster 5 | Corr: 0.8554, F1: 0.2783
+
+Instance 9 - Top 5 Feature-Cluster Matches:
+  1. Feature 549 <-> Cluster 3 | Corr: 0.9577, F1: 0.3361
+  2. Feature 810 <-> Cluster 3 | Corr: 0.8856, F1: 0.3333
+  3. Feature 47 <-> Cluster 0 | Corr: 0.8640, F1: 0.3361
+  4. Feature 1022 <-> Cluster 3 | Corr: 0.8452, F1: 0.5000
+  5. Feature 803 <-> Cluster 0 | Corr: 0.8011, F1: 0.3509
 

@@ -5,7 +5,7 @@ num_epochs=1000
 num_instances=100_000
 num_val=100
 num_loc=100
-batch_size=2048
+batch_size=1024
 temperature=0.8
 lr=1e-2
 checkpoint_freq=20
@@ -15,18 +15,18 @@ clip_val=0.001
 
 # Learning rate decay configuration
 lr_decay="linear"  # Options: "none", "cosine", "linear"
-# min_lr=1e-6        # Minimum learning rate at end of training
+min_lr=1e-6        # Minimum learning rate at end of training
 
 # Load from checkpoint (set to empty string to start from scratch)
 load_checkpoint=""
 # reset_lr=true
 
 # Model config
-embed_dim=256
-n_encoder_layers=8
+embed_dim=512
+n_encoder_layers=6
 
 # Run name
-run_name="Test:clip_tiny_lr_huge"
+run_name="clip_tiny_lr_huge_embed_512_tight_clusters"
 
 # Construct the checkpoint and reset_lr arguments
 if [ -n "$load_checkpoint" ]; then

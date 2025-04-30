@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Use simple run names instead of full paths
-run_name="Test_Clusters_8_layers"
-sae_run_name="sae_l10.001_ef4.0_k0.1_04-10_11:06:06"
+run_name="clip_tiny_lr_huge_embed_512_tight_clusters"
+sae_run_name="sae_l10.001_ef4.0_k0.05_04-17_11:05:11"
 # Construct full paths internally in the script
 run_path="./runs/${run_name}"
 sae_path="${run_path}/sae/sae_runs/${sae_run_name}"

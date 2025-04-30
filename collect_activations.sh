@@ -1,6 +1,6 @@
 echo "Collecting activations"
 
-run_name="Test_Clusters_8_layers"
+run_name="clip_tiny_lr_huge_embed_512_tight_clusters"
 
 python -m sae.collect_activations \
  --run_name $run_name \

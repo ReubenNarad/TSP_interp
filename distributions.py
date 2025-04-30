@@ -246,7 +246,7 @@ class Clusters:
     Creates new clusters for each sample() call with tight, compact clusters.
     Allows points to extend beyond the [0,1] range.
     """
-    def __init__(self, min_clusters=5, max_clusters=10):
+    def __init__(self, min_clusters=8, max_clusters=15):
         super().__init__()
         self.min_clusters = min_clusters
         self.max_clusters = max_clusters
@@ -262,18 +262,19 @@ class Clusters:
         
         # For each batch, create new clusters
         for i in range(batch_size):
-            # Generate new clusters for this batch
+            # Generate new clusters for this batch - more clusters now
             n_clusters = torch.randint(self.min_clusters, self.max_clusters + 1, (1,)).item()
             clusters = []
             
             for j in range(n_clusters):
                 # Define the cluster's mean (center)
-                mean = 0.1 + 0.8 * torch.rand(2, device=device)
+                mean = 0.05 + 0.95 * torch.rand(2, device=device)
                 
                 # Create a proper random covariance matrix with random orientation
                 # Generate random standard deviations for x and y directions
-                std_x = (0.004 + 0.002 * torch.rand(1, device=device)).sqrt()
-                std_y = (0.004 + 0.002 * torch.rand(1, device=device)).sqrt()
+                # Smaller values for tighter clusters
+                std_x = (0.001 + 0.0005 * torch.rand(1, device=device)).sqrt()
+                std_y = (0.001 + 0.0005 * torch.rand(1, device=device)).sqrt()
                 
                 # Generate random rotation angle (0 to 2π)
                 theta = 2 * math.pi * torch.rand(1, device=device)
@@ -392,19 +393,19 @@ if __name__ == "__main__":
     sns.set_theme(style="whitegrid")
 
     # Initialize the sampler
-    sampler = Clusters(min_clusters=3, max_clusters=7)
+    sampler = Clusters(min_clusters=10, max_clusters=15)
 
-    # Sample a batch of 10 instances
-    coords = sampler.sample([10, 100, 2])  # 10 instances, 100 points per instance, 2D
+    # Sample a batch of 3 instances
+    coords = sampler.sample([3, 100, 2])  # 3 instances, 100 points per instance, 2D
 
-    # Create a figure with subplots for each batch (10 plots)
-    fig, axes = plt.subplots(2, 5, figsize=(15, 6))
+    # Create a figure with subplots for each batch (3 plots)
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4))
     axes = axes.flatten()
 
     # Plot each batch
-    for i in range(10):
+    for i in range(3):
         coords_np = coords[i].cpu().numpy()
-        axes[i].scatter(coords_np[:, 0], coords_np[:, 1], alpha=0.5, s=10)
+        axes[i].scatter(coords_np[:, 0], coords_np[:, 1], alpha=0.5, s=2)
         # Set fixed plot limits from -0.5 to 1.5
         axes[i].set_xlim(-0.2, 1.2)
         axes[i].set_ylim(-0.2, 1.2)

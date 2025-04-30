@@ -14,6 +14,8 @@ from sklearn.metrics import precision_recall_fscore_support
 from scipy.stats import pearsonr
 from tqdm import tqdm
 import glob
+import base64
+from io import BytesIO
 
 # Add project root directory (parent of the parent of the script's directory) to sys.path
 project_root = Path(__file__).resolve().parent.parent.parent
@@ -27,13 +29,13 @@ from rl4co.envs import TSPEnv
 from rl4co.envs.routing import TSPGenerator
 
 # --- Configuration ---
-RUN_NAME = "Test_Clusters_8_layers"
-SAE_RUN_NAME = "sae_l10.001_ef4.0_k0.1_04-10_11:06:06"
+RUN_NAME = "clip_tiny_lr_huge_embed_512_tight_clusters"
+SAE_RUN_NAME = "sae_l10.001_ef4.0_k0.05_04-17_11:05:11"
 BASE_RUN_PATH = Path(f"runs/{RUN_NAME}")
 SAE_PATH = BASE_RUN_PATH / "sae" / "sae_runs" / SAE_RUN_NAME
 OUTPUT_DIR = Path("experiments/cluster_feature/visualizations")
 NUM_LOC = 100 # Default number of locations, adjust if needed from config
-NUM_INSTANCES = 1  # Number of instances to analyze
+NUM_INSTANCES = 10  # Number of instances to analyze
 
 # Create output directory
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -417,12 +419,12 @@ def analyze_single_instance(tsp_model, sae_model, activation_key, instance_data,
             # Create a colormap for the clusters - use a more vibrant one
             num_clusters = len(unique_clusters)
             # Replace 'tab20' with a higher contrast colormap
-            cmap = plt.get_cmap('Dark2', num_clusters)  # Much more contrast than tab20
-            # If more than 8 clusters (Dark2 limit), fall back to a combined approach
+            cmap = plt.get_cmap('Accent', num_clusters)  # Much more contrast than tab20
+            # If more than 8 clusters (Accent limit), fall back to a combined approach
             if num_clusters > 8:
                 # Create a list of distinct colors by combining colormaps
-                base_colors = plt.get_cmap('Dark2', 8)(range(8))
-                extra_colors = plt.get_cmap('Set1', num_clusters-8)(range(num_clusters-8))
+                base_colors = plt.get_cmap('Accent', 8)(range(8))
+                extra_colors = plt.get_cmap('Accent', num_clusters-8)(range(num_clusters-8))
                 all_colors = np.vstack([base_colors, extra_colors])
                 cmap = plt.matplotlib.colors.ListedColormap(all_colors)
             
@@ -456,12 +458,20 @@ def analyze_single_instance(tsp_model, sae_model, activation_key, instance_data,
             ax1.legend(loc='upper right')
             
             # Plot 2: Feature Activation
-            norm = plt.Normalize(vmin=feature_acts.min(), vmax=feature_acts.max())
+            # Normalize the feature activations to 0-1 range for visualization
+            feature_min = feature_acts.min()
+            feature_max = feature_acts.max()
+            if feature_max > feature_min:  # Avoid division by zero
+                feature_acts_normalized = (feature_acts - feature_min) / (feature_max - feature_min)
+            else:
+                feature_acts_normalized = feature_acts * 0  # All zeros if all values are identical
+            
+            norm = plt.Normalize(vmin=0, vmax=1)  # Fixed 0-1 normalization
             cmap = plt.get_cmap('viridis')
             scatter = ax2.scatter(
                 node_coords[:, 0], 
                 node_coords[:, 1], 
-                c=feature_acts, 
+                c=feature_acts_normalized, 
                 cmap=cmap, 
                 norm=norm, 
                 s=50, 
@@ -470,9 +480,11 @@ def analyze_single_instance(tsp_model, sae_model, activation_key, instance_data,
             
             # Add colorbar in the dedicated axis - vertical but same height as plots
             cbar = plt.colorbar(scatter, cax=cax)
-            cbar.set_label(f'Feature {feature_idx} Activation')
+            cbar.set_label(f'Feature {feature_idx} Activation (Normalized)')
             
-            ax2.set_title(f'Feature {feature_idx} Activation\nCorr: {best_feature["correlation"]:.3f}, F1: {best_feature["f1_score"]:.3f}')
+            # Update the title to include the actual min/max values
+            ax2.set_title(f'Feature {feature_idx} Activation\nCorr: {best_feature["correlation"]:.3f}, Range: [{feature_min:.2f}, {feature_max:.2f}]')
+            
             ax2.set_xlabel('X Coordinate')
             ax2.set_ylabel('Y Coordinate')
             ax2.set_aspect('equal')
@@ -509,11 +521,11 @@ def analyze_single_instance(tsp_model, sae_model, activation_key, instance_data,
         gs = gridspec.GridSpec(1, 3, width_ratios=[1, 1, 0.05])
         
         # Use a more vibrant colormap for clusters
-        cluster_cmap = plt.get_cmap('Dark2', min(8, len(unique_clusters)))
+        cluster_cmap = plt.get_cmap('Accent', min(8, len(unique_clusters)))
         # If more than 8 clusters, combine colormaps
         if len(unique_clusters) > 8:
-            base_colors = plt.get_cmap('Dark2', 8)(range(8))
-            extra_colors = plt.get_cmap('Set1', len(unique_clusters)-8)(range(len(unique_clusters)-8))
+            base_colors = plt.get_cmap('Accent', 8)(range(8))
+            extra_colors = plt.get_cmap('Accent', len(unique_clusters)-8)(range(len(unique_clusters)-8))
             all_colors = np.vstack([base_colors, extra_colors])
             cluster_cmap = plt.matplotlib.colors.ListedColormap(all_colors)
         
@@ -536,10 +548,22 @@ def analyze_single_instance(tsp_model, sae_model, activation_key, instance_data,
         ax1.legend(handles, legend_labels, title="Clusters", loc='upper right')
         
         # Plot 2: Feature Activation
-        norm = plt.Normalize(vmin=feature_acts_viz.min(), vmax=feature_acts_viz.max())
+        # Normalize the feature activations to 0-1 range for visualization
+        feature_min = feature_acts_viz.min()
+        feature_max = feature_acts_viz.max()
+        if feature_max > feature_min:  # Avoid division by zero
+            feature_acts_viz_normalized = (feature_acts_viz - feature_min) / (feature_max - feature_min)
+        else:
+            feature_acts_viz_normalized = feature_acts_viz * 0  # All zeros if all values are identical
+        
+        norm = plt.Normalize(vmin=0, vmax=1)  # Fixed 0-1 normalization
         cmap = plt.get_cmap('viridis')
-        scatter2 = ax2.scatter(node_coords[:, 0], node_coords[:, 1], c=feature_acts_viz, cmap=cmap, norm=norm, s=50, alpha=0.8)
-        ax2.set_title(f'Feature {feature_to_viz} Activation (Corr: {top_match["correlation"]:.3f}, F1: {top_match["f1_score"]:.3f})')
+        scatter2 = ax2.scatter(node_coords[:, 0], node_coords[:, 1], c=feature_acts_viz_normalized, cmap=cmap, norm=norm, s=50, alpha=0.8)
+        
+        # Update the title to include the actual min/max values
+        ax2.set_title(f'Feature {feature_to_viz} Activation (Normalized)\n' +
+                     f'Corr: {top_match["correlation"]:.3f}, F1: {top_match["f1_score"]:.3f}, Range: [{feature_min:.2f}, {feature_max:.2f}]')
+        
         ax2.set_xlabel('X Coordinate')
         ax2.set_ylabel('Y Coordinate')
         ax2.set_aspect('equal')
@@ -547,7 +571,7 @@ def analyze_single_instance(tsp_model, sae_model, activation_key, instance_data,
         
         # Add colorbar to dedicated axis
         cbar = plt.colorbar(scatter2, cax=cax)
-        cbar.set_label(f'Feature {feature_to_viz} Activation')
+        cbar.set_label(f'Feature {feature_to_viz} Activation (Normalized)')
         
         # Set the limits to be identical for both plots
         x_min, x_max = 0, 1
@@ -569,6 +593,258 @@ def analyze_single_instance(tsp_model, sae_model, activation_key, instance_data,
         print("No results to visualize.")
 
     return results
+
+# Add this function before the main script execution
+def create_interactive_html(all_results, output_dir):
+    """Create an interactive HTML file to browse visualizations."""
+    
+    print("Generating interactive HTML viewer...")
+    
+    html_path = output_dir / "interactive_viewer.html"
+    
+    # Collect instance and cluster information
+    instance_data = {}
+    
+    # Collect the structure of available visualizations
+    for instance_idx, instance_results in enumerate(all_results):
+        instance_dir = output_dir / f"instance_{instance_idx}"
+        
+        # Group results by cluster_id
+        cluster_to_features = {}
+        for res in instance_results:
+            cluster_id = res['cluster_id']
+            if cluster_id not in cluster_to_features:
+                cluster_to_features[cluster_id] = []
+            cluster_to_features[cluster_id].append(res)
+                
+        # Store best feature for each cluster
+        best_features = {}
+        for cluster_id, cluster_results in cluster_to_features.items():
+            # Sort features for this cluster by absolute correlation
+            cluster_results.sort(key=lambda x: (abs(x['correlation']), x['f1_score']), reverse=True)
+            best_feature = cluster_results[0]
+            
+            # Convert NumPy types to Python native types
+            cluster_id_py = int(cluster_id) if isinstance(cluster_id, (np.integer, np.int64)) else cluster_id
+            feature_idx_py = int(best_feature['feature_idx']) if isinstance(best_feature['feature_idx'], (np.integer, np.int64)) else best_feature['feature_idx']
+            
+            best_features[str(cluster_id_py)] = {
+                'feature_idx': feature_idx_py,
+                'correlation': float(best_feature['correlation']),
+                'f1_score': float(best_feature['f1_score']),
+                'image_path': f"instance_{instance_idx}/cluster_{cluster_id_py}_best_feature_{feature_idx_py}.png"
+            }
+            
+        # Count unique clusters in this instance
+        unique_clusters = set(res['cluster_id'] for res in instance_results)
+        # Convert to Python native integers
+        unique_clusters_py = [int(c) if isinstance(c, (np.integer, np.int64)) else c for c in unique_clusters]
+        
+        # Store instance data
+        instance_data[str(instance_idx)] = {
+            'clusters': sorted(unique_clusters_py),
+            'best_features': best_features,
+        }
+    
+    # Generate HTML file
+    with open(html_path, 'w') as f:
+        f.write("""<!DOCTYPE html>
+<html>
+<head>
+    <title>TSP SAE Feature Analysis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .container {
+            max-width: 90%;
+            margin: 0 auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 40px;
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+            font-size: 1.6em;
+            margin-bottom: 20px;
+        }
+        .control-panel {
+            display: flex;
+            align-items: center;
+            gap: 25px;
+            margin-bottom: 20px;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+        }
+        label {
+            font-weight: bold;
+            margin-right: 12px;
+            white-space: nowrap;
+            font-size: 16px;
+        }
+        select {
+            padding: 10px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            min-width: 250px;
+            font-size: 16px;
+        }
+        .image-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: auto;
+            margin: 0 30px;
+        }
+        img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        #current-view {
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TSP SAE Feature Analysis - """ + RUN_NAME + """ - """ + SAE_RUN_NAME + """</h1>
+        
+        <div class="control-panel">
+            <div class="control-group">
+                <label for="instance-select">Instance:</label>
+                <select id="instance-select" onchange="updateView()">
+""")
+
+        # Add instance options
+        for instance_idx in sorted([int(k) for k in instance_data.keys()]):
+            clusters_count = len(instance_data[str(instance_idx)]["clusters"])
+            f.write(f'                <option value="{instance_idx}">Instance {instance_idx} ({clusters_count} clusters)</option>\n')
+
+        f.write("""                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="cluster-select">Cluster:</label>
+                <select id="cluster-select" onchange="updateClusterView()">
+                    <!-- Cluster options will be populated by JavaScript -->
+                </select>
+            </div>
+            
+            <div id="current-view" style="margin-left: auto; font-style: italic;"></div>
+        </div>
+        
+        <div class="image-container">
+            <img id="display-image" src="" alt="Visualization">
+        </div>
+    </div>
+
+    <script>
+    // Store all data about instances and visualizations
+    """)
+
+        # Add JavaScript data object with explicit type conversion
+        def convert_to_serializable(obj):
+            if isinstance(obj, dict):
+                return {str(convert_to_serializable(k)): convert_to_serializable(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_to_serializable(i) for i in obj]
+            elif isinstance(obj, (np.integer, np.int64, np.int32, np.int16, np.int8)):
+                return int(obj)
+            elif isinstance(obj, (np.floating, np.float64, np.float32, np.float16)):
+                return float(obj)
+            else:
+                return obj
+        
+        serializable_data = convert_to_serializable(instance_data)
+        f.write(f"const instanceData = {json.dumps(serializable_data)};\n")
+        
+        f.write("""
+    // Function to update the cluster dropdown options based on selected instance
+    function updateClusterOptions() {
+        const instanceSelect = document.getElementById('instance-select');
+        const clusterSelect = document.getElementById('cluster-select');
+        const selectedInstance = instanceSelect.value;
+        
+        // Clear existing options
+        clusterSelect.innerHTML = '';
+        
+        // Add new options based on selected instance - keep clusters sorted numerically
+        const clusters = instanceData[selectedInstance].clusters.sort((a, b) => a - b);
+        
+        clusters.forEach(clusterId => {
+            const clusterIdStr = clusterId.toString();
+            const feature = instanceData[selectedInstance].best_features[clusterIdStr].feature_idx;
+            const corr = Math.abs(instanceData[selectedInstance].best_features[clusterIdStr].correlation).toFixed(3);
+            const option = document.createElement('option');
+            option.value = clusterIdStr;
+            option.textContent = `Cluster ${clusterId} (Feature ${feature}, Corr: ${corr})`;
+            clusterSelect.appendChild(option);
+        });
+    }
+    
+    // Function to update view label
+    function updateViewLabel(instanceIdx, clusterId) {
+        const currentView = document.getElementById('current-view');
+        const featureData = instanceData[instanceIdx].best_features[clusterId];
+        
+        currentView.textContent = `Instance ${instanceIdx}: Best Feature for Cluster ${clusterId} (Feature ${featureData.feature_idx})`;
+    }
+    
+    // Function to update the view based on instance selection
+    function updateView() {
+        // Update cluster options 
+        updateClusterOptions();
+        
+        // Select first cluster and update view
+        const clusterSelect = document.getElementById('cluster-select');
+        if (clusterSelect.options.length > 0) {
+            clusterSelect.selectedIndex = 0;
+            updateClusterView();
+        }
+    }
+    
+    // Function to update view when cluster changes
+    function updateClusterView() {
+        const instanceSelect = document.getElementById('instance-select');
+        const clusterSelect = document.getElementById('cluster-select');
+        const displayImage = document.getElementById('display-image');
+        
+        const selectedInstance = instanceSelect.value;
+        const selectedCluster = clusterSelect.value;
+        
+        // Show selected cluster's image if it exists
+        const imagePath = instanceData[selectedInstance].best_features[selectedCluster].image_path;
+        displayImage.src = imagePath;
+        
+        // Update view label
+        updateViewLabel(selectedInstance, selectedCluster);
+    }
+    
+    // Initialize the view
+    window.onload = function() {
+        updateView();
+    };
+    </script>
+</body>
+</html>""")
+
+    print(f"Interactive HTML viewer created at {html_path}")
+    return html_path
 
 # --- Script Execution ---
 if __name__ == "__main__":
@@ -653,3 +929,9 @@ if __name__ == "__main__":
     print(f"\nAnalysis complete for {NUM_INSTANCES} instances.")
     print(f"Results saved to {OUTPUT_DIR}")
     print(f"Summary saved to {summary_path}")
+    
+    # After processing all instances and creating the summary file
+    interactive_html_path = create_interactive_html(all_results, OUTPUT_DIR)
+    
+    print(f"Interactive HTML viewer created at {interactive_html_path}")
+    print("\nAnalysis complete.")

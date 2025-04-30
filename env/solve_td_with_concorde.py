@@ -1,5 +1,5 @@
 import torch
-import subprocess, os, pickle, argparse
+import subprocess, os, pickle, argparse, re
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from distributions import Uniform, DualUniform, RandomUniform, FuzzyCircle, HybridSampler
@@ -29,25 +29,50 @@ def write_tsplib_file(filename, coords):
 def run_concorde(instance_filename, solution_filename):
     """
     Run Concorde on the given TSP instance file and save solution to solution_filename.
+    Returns the number of branch-and-bound nodes used.
 
     Args:
         instance_filename (str): Path to .tsp file in TSPLIB format.
         solution_filename (str): Desired output .sol or .txt file from Concorde.
+
+    Returns:
+        int: Number of branch-and-bound nodes, or -1 if not found.
     """
     base_path = os.path.splitext(instance_filename)[0]
+    bb_nodes = -1 # Default value if not found
     try:
-        subprocess.run(
+        # Capture stdout to parse node count
+        result = subprocess.run(
             ['concorde', '-o', solution_filename, instance_filename],
             check=True,
             text=True,
-            stdout=subprocess.DEVNULL,
+            stdout=subprocess.PIPE, # Capture standard output
             stderr=subprocess.PIPE
         )
-    except subprocess.CalledProcessError as e:
-        print("Error executing Concorde:")
-        print(e.stderr)
-        raise
 
+        # Print the stdout for debugging
+        print(f"Concorde stdout for {instance_filename}:")
+        print(result.stdout)
+
+        # Use the specific regex for "Number of bbnodes:"
+        match = re.search(r"Number of bbnodes:\s*(\d+)", result.stdout)
+        if match:
+            bb_nodes = int(match.group(1))
+        else:
+            # Also check stderr if not found in stdout
+             match_err = re.search(r"Number of bbnodes:\s*(\d+)", result.stderr)
+             if match_err:
+                 bb_nodes = int(match_err.group(1))
+
+    except subprocess.CalledProcessError as e:
+        print(f"Error executing Concorde for {instance_filename}:")
+        print(e.stderr) # Keep printing the error message itself
+
+        # Check stderr for node count as well
+        match = re.search(r"Number of bbnodes:\s*(\d+)", e.stderr)
+        if match:
+            bb_nodes = int(match.group(1))
+        # raise # Optionally re-raise the exception
     # Clean up Concorde's intermediate files
     extensions = ['.pul', '.sav', '.res', '.mas', '.pix', '.sol']
     base_stub = os.path.basename(base_path)
@@ -59,6 +84,8 @@ def run_concorde(instance_filename, solution_filename):
             os.remove(temp_file)
         if os.path.exists(o_temp_file):
             os.remove(o_temp_file)
+
+    return bb_nodes
 
 
 def read_solution_file(filename):
@@ -98,7 +125,7 @@ def compute_tour_length(coords, route):
     Compute the total Euclidean tour length for a route that visits
     all nodes in 'route' order and returns to the start.
 
-    coords: [num_locs, 2]  FloatTensor
+    coords: [num_l locs, 2]  FloatTensor
     route: [num_locs]  1D long tensor with the visiting order (0-based).
 
     Returns:
@@ -126,6 +153,7 @@ def main(args):
     
     all_solutions = []
     all_rewards = []  # We'll store -tour_length here, consistent with how TSPEnv does it
+    all_bb_nodes = [] # Store branch-and-bound node counts
 
     # Create a local scratch folder for TSP files
     scratch_folder = "concorde_temp"
@@ -139,8 +167,8 @@ def main(args):
 
         write_tsplib_file(tsp_filename, coords_i)
 
-        # 3) Run Concorde
-        run_concorde(tsp_filename, sol_filename)
+        # 3) Run Concorde and get node count
+        bb_nodes = run_concorde(tsp_filename, sol_filename)
 
         # 4) Read the solution route
         route_0based = read_solution_file(sol_filename)
@@ -154,18 +182,22 @@ def main(args):
 
         all_solutions.append(route_t)
         all_rewards.append(reward)
+        all_bb_nodes.append(bb_nodes) # Append the node count
 
     # Convert to tensors
     optimal_routes = torch.stack(all_solutions, dim=0)      # [batch_size, num_locs]
     optimal_rewards = torch.stack(all_rewards, dim=0)       # [batch_size]
+    optimal_bb_nodes = torch.tensor(all_bb_nodes, dtype=torch.long) # [batch_size]
 
     # Store similarly to how training code stores actions/rewards
     results = {
         'actions': [optimal_routes],  # same shape as your model's output
-        'rewards': [optimal_rewards]  # match the style: a list with one tensor
+        'rewards': [optimal_rewards], # match the style: a list with one tensor
+        'bb_nodes': [optimal_bb_nodes] # Add the node counts
     }
 
-    print(f"Optimally solved {batch_size} instances with avg distance {- optimal_rewards.mean().item()}")
+    avg_nodes = optimal_bb_nodes[optimal_bb_nodes != -1].float().mean().item() if (optimal_bb_nodes != -1).any() else 'N/A'
+    print(f"Optimally solved {batch_size} instances with avg distance {- optimal_rewards.mean().item():.4f}, avg B&B nodes: {avg_nodes}")
 
     # 5) Save the results
     with open(output_td, 'wb') as f:
