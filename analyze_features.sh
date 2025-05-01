@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Use simple run names instead of full paths
-run_name="clip_tiny_lr_huge_embed_512_tight_clusters"
-sae_run_name="sae_l10.001_ef4.0_k0.05_04-17_11:05:11"
+run_name="Hybrid_3_1e-5"
+sae_run_name="sae_l10.001_ef4.0_k0.1_03-21_17:41:07"
 # Construct full paths internally in the script
 run_path="./runs/${run_name}"
 sae_path="${run_path}/sae/sae_runs/${sae_run_name}"
@@ -21,6 +21,6 @@ python -m sae.feature_analysis \
   --num_features ${num_features} \
   --show_solution \
   --no_multi_feature \
-  # --html_only
+  --html_only
 
 echo "Feature analysis complete!"

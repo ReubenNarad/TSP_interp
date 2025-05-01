@@ -1,0 +1,5318 @@
+<!DOCTYPE html>
+<html><head><title>SAE Feature Analysis</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 20px; }
+.container { margin: 20px 0; }
+.feature { margin: 10px; padding: 10px; border: 1px solid #ccc; }
+.feature-title { font-weight: bold; margin-bottom: 10px; }
+.instance-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+.instance { margin: 5px; text-align: center; }
+.feature-overlay-img { max-width: 800px; max-height: 600px; border: 1px solid #eee; margin: 0 auto; display: block; }
+.instance-img { width: 100%; border: 1px solid #eee; }
+.view-container { display: none; }
+.control-panel { background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+select { padding: 8px; font-size: 16px; margin-right: 10px; }
+.image-container { text-align: center; margin: 20px auto; max-width: 800px; }
+</style>
+<script>
+function switchView() {
+  var viewType = document.getElementById('view-selector').value;
+  var containers = document.querySelectorAll('.view-container');
+  containers.forEach(function(container) {
+    container.style.display = 'none';
+  });
+  document.getElementById(viewType + '-view').style.display = 'block';
+  if (viewType === 'feature') {
+    updateFeatureView();
+  } else if (viewType === 'instance') {
+    updateInstanceView();
+  }
+}
+function updateFeatureView() {
+  var featureId = document.getElementById('feature-selector').value;
+  var featureContainers = document.querySelectorAll('.feature-content');
+  featureContainers.forEach(function(container) {
+    container.style.display = 'none';
+  });
+  document.getElementById('feature-' + featureId).style.display = 'block';
+}
+function updateInstanceView() {
+  var instanceId = document.getElementById('instance-selector').value;
+  var instanceContainers = document.querySelectorAll('.instance-content');
+  instanceContainers.forEach(function(container) {
+    container.style.display = 'none';
+  });
+  document.getElementById('instance-' + instanceId).style.display = 'block';
+}
+</script>
+</head><body>
+<h1>SAE Feature Analysis</h1>
+<p>Run: Hybrid_3_1e-5</p>
+<p>SAE: sae_l10.001_ef4.0_k0.1_03-21_17:41:07</p>
+<div class='control-panel'>
+  <label for='view-selector'>Select View: </label>
+  <select id='view-selector' onchange='switchView()'>
+    <option value='feature'>Per Feature</option>
+    <option value='instance'>Per Instance</option>
+  </select>
+  <span id='feature-control'>
+    <label for='feature-selector'>Select Feature: </label>
+    <select id='feature-selector' onchange='updateFeatureView()'>
+    <option value='409'>Feature 409 (Act: 1.4363)</option>
+    <option value='941'>Feature 941 (Act: 1.2172)</option>
+    <option value='894'>Feature 894 (Act: 1.1563)</option>
+    <option value='227'>Feature 227 (Act: 1.1246)</option>
+    <option value='945'>Feature 945 (Act: 1.1066)</option>
+    <option value='1022'>Feature 1022 (Act: 1.0379)</option>
+    <option value='348'>Feature 348 (Act: 1.0149)</option>
+    <option value='874'>Feature 874 (Act: 1.0119)</option>
+    <option value='762'>Feature 762 (Act: 0.9816)</option>
+    <option value='764'>Feature 764 (Act: 0.9442)</option>
+    <option value='239'>Feature 239 (Act: 0.9366)</option>
+    <option value='951'>Feature 951 (Act: 0.9297)</option>
+    <option value='374'>Feature 374 (Act: 0.8736)</option>
+    <option value='898'>Feature 898 (Act: 0.8448)</option>
+    <option value='50'>Feature 50 (Act: 0.7647)</option>
+    <option value='323'>Feature 323 (Act: 0.7569)</option>
+    <option value='82'>Feature 82 (Act: 0.7413)</option>
+    <option value='948'>Feature 948 (Act: 0.7388)</option>
+    <option value='978'>Feature 978 (Act: 0.6830)</option>
+    <option value='272'>Feature 272 (Act: 0.6765)</option>
+    <option value='770'>Feature 770 (Act: 0.6470)</option>
+    <option value='555'>Feature 555 (Act: 0.6164)</option>
+    <option value='730'>Feature 730 (Act: 0.5839)</option>
+    <option value='329'>Feature 329 (Act: 0.5732)</option>
+    <option value='689'>Feature 689 (Act: 0.5724)</option>
+    <option value='287'>Feature 287 (Act: 0.5704)</option>
+    <option value='310'>Feature 310 (Act: 0.5394)</option>
+    <option value='243'>Feature 243 (Act: 0.5304)</option>
+    <option value='710'>Feature 710 (Act: 0.5256)</option>
+    <option value='63'>Feature 63 (Act: 0.5132)</option>
+    <option value='596'>Feature 596 (Act: 0.5053)</option>
+    <option value='76'>Feature 76 (Act: 0.4910)</option>
+    <option value='501'>Feature 501 (Act: 0.4885)</option>
+    <option value='787'>Feature 787 (Act: 0.4789)</option>
+    <option value='210'>Feature 210 (Act: 0.4786)</option>
+    <option value='829'>Feature 829 (Act: 0.4563)</option>
+    <option value='836'>Feature 836 (Act: 0.4512)</option>
+    <option value='616'>Feature 616 (Act: 0.4393)</option>
+    <option value='376'>Feature 376 (Act: 0.4325)</option>
+    <option value='443'>Feature 443 (Act: 0.4273)</option>
+    </select>
+  </span>
+  <span id='instance-control' style='display:none;'>
+    <label for='instance-selector'>Select Instance: </label>
+    <select id='instance-selector' onchange='updateInstanceView()'>
+    <option value='0'>Instance 0</option>
+    <option value='1'>Instance 1</option>
+    <option value='2'>Instance 2</option>
+    <option value='3'>Instance 3</option>
+    <option value='4'>Instance 4</option>
+    <option value='5'>Instance 5</option>
+    <option value='6'>Instance 6</option>
+    <option value='7'>Instance 7</option>
+    <option value='8'>Instance 8</option>
+    <option value='9'>Instance 9</option>
+    </select>
+  </span>
+</div>
+<div id='feature-view' class='view-container' style='display:block;'>
+<div id='feature-409' class='feature-content' style='display:block;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_409_overlay.png' alt='Feature 409 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 9 (Activation: 1.5584)</p>
+<a href='feature_409/instance_9.png' target='_blank'>
+<img src='feature_409/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 1.5155)</p>
+<a href='feature_409/instance_4.png' target='_blank'>
+<img src='feature_409/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 1.4993)</p>
+<a href='feature_409/instance_8.png' target='_blank'>
+<img src='feature_409/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 1.4862)</p>
+<a href='feature_409/instance_5.png' target='_blank'>
+<img src='feature_409/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 1 (Activation: 1.4714)</p>
+<a href='feature_409/instance_1.png' target='_blank'>
+<img src='feature_409/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 1.4364)</p>
+<a href='feature_409/instance_7.png' target='_blank'>
+<img src='feature_409/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 1.3805)</p>
+<a href='feature_409/instance_2.png' target='_blank'>
+<img src='feature_409/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 6 (Activation: 1.3526)</p>
+<a href='feature_409/instance_6.png' target='_blank'>
+<img src='feature_409/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 1.3435)</p>
+<a href='feature_409/instance_3.png' target='_blank'>
+<img src='feature_409/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 1.3194)</p>
+<a href='feature_409/instance_0.png' target='_blank'>
+<img src='feature_409/instance_0.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-941' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_941_overlay.png' alt='Feature 941 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 0 (Activation: 1.3476)</p>
+<a href='feature_941/instance_0.png' target='_blank'>
+<img src='feature_941/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 1.2698)</p>
+<a href='feature_941/instance_2.png' target='_blank'>
+<img src='feature_941/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 1.2627)</p>
+<a href='feature_941/instance_4.png' target='_blank'>
+<img src='feature_941/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 1.2527)</p>
+<a href='feature_941/instance_8.png' target='_blank'>
+<img src='feature_941/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 1.2016)</p>
+<a href='feature_941/instance_7.png' target='_blank'>
+<img src='feature_941/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 1.1919)</p>
+<a href='feature_941/instance_5.png' target='_blank'>
+<img src='feature_941/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 1.1873)</p>
+<a href='feature_941/instance_9.png' target='_blank'>
+<img src='feature_941/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 1 (Activation: 1.1680)</p>
+<a href='feature_941/instance_1.png' target='_blank'>
+<img src='feature_941/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 1.1506)</p>
+<a href='feature_941/instance_3.png' target='_blank'>
+<img src='feature_941/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 6 (Activation: 1.1394)</p>
+<a href='feature_941/instance_6.png' target='_blank'>
+<img src='feature_941/instance_6.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-894' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_894_overlay.png' alt='Feature 894 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 8 (Activation: 1.2698)</p>
+<a href='feature_894/instance_8.png' target='_blank'>
+<img src='feature_894/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 1.2201)</p>
+<a href='feature_894/instance_3.png' target='_blank'>
+<img src='feature_894/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 1.2168)</p>
+<a href='feature_894/instance_5.png' target='_blank'>
+<img src='feature_894/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 1.2010)</p>
+<a href='feature_894/instance_0.png' target='_blank'>
+<img src='feature_894/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 1.1835)</p>
+<a href='feature_894/instance_7.png' target='_blank'>
+<img src='feature_894/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 6 (Activation: 1.1639)</p>
+<a href='feature_894/instance_6.png' target='_blank'>
+<img src='feature_894/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 1.1446)</p>
+<a href='feature_894/instance_2.png' target='_blank'>
+<img src='feature_894/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 1.1170)</p>
+<a href='feature_894/instance_9.png' target='_blank'>
+<img src='feature_894/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 1 (Activation: 1.0333)</p>
+<a href='feature_894/instance_1.png' target='_blank'>
+<img src='feature_894/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 1.0130)</p>
+<a href='feature_894/instance_4.png' target='_blank'>
+<img src='feature_894/instance_4.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-227' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_227_overlay.png' alt='Feature 227 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 9 (Activation: 1.2237)</p>
+<a href='feature_227/instance_9.png' target='_blank'>
+<img src='feature_227/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 1 (Activation: 1.1919)</p>
+<a href='feature_227/instance_1.png' target='_blank'>
+<img src='feature_227/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 1.1793)</p>
+<a href='feature_227/instance_4.png' target='_blank'>
+<img src='feature_227/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 1.1502)</p>
+<a href='feature_227/instance_8.png' target='_blank'>
+<img src='feature_227/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 1.1235)</p>
+<a href='feature_227/instance_7.png' target='_blank'>
+<img src='feature_227/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 1.1233)</p>
+<a href='feature_227/instance_5.png' target='_blank'>
+<img src='feature_227/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 6 (Activation: 1.0786)</p>
+<a href='feature_227/instance_6.png' target='_blank'>
+<img src='feature_227/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 1.0601)</p>
+<a href='feature_227/instance_2.png' target='_blank'>
+<img src='feature_227/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 1.0579)</p>
+<a href='feature_227/instance_3.png' target='_blank'>
+<img src='feature_227/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 1.0578)</p>
+<a href='feature_227/instance_0.png' target='_blank'>
+<img src='feature_227/instance_0.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-945' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_945_overlay.png' alt='Feature 945 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 6 (Activation: 1.1723)</p>
+<a href='feature_945/instance_6.png' target='_blank'>
+<img src='feature_945/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 1.1482)</p>
+<a href='feature_945/instance_7.png' target='_blank'>
+<img src='feature_945/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 1.1448)</p>
+<a href='feature_945/instance_2.png' target='_blank'>
+<img src='feature_945/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 1.1185)</p>
+<a href='feature_945/instance_3.png' target='_blank'>
+<img src='feature_945/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 1.1124)</p>
+<a href='feature_945/instance_0.png' target='_blank'>
+<img src='feature_945/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 1 (Activation: 1.1122)</p>
+<a href='feature_945/instance_1.png' target='_blank'>
+<img src='feature_945/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 1.0828)</p>
+<a href='feature_945/instance_4.png' target='_blank'>
+<img src='feature_945/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 1.0788)</p>
+<a href='feature_945/instance_9.png' target='_blank'>
+<img src='feature_945/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 1.0569)</p>
+<a href='feature_945/instance_8.png' target='_blank'>
+<img src='feature_945/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 1.0392)</p>
+<a href='feature_945/instance_5.png' target='_blank'>
+<img src='feature_945/instance_5.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-1022' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_1022_overlay.png' alt='Feature 1022 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 7 (Activation: 1.1142)</p>
+<a href='feature_1022/instance_7.png' target='_blank'>
+<img src='feature_1022/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 6 (Activation: 1.1055)</p>
+<a href='feature_1022/instance_6.png' target='_blank'>
+<img src='feature_1022/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 1.0888)</p>
+<a href='feature_1022/instance_2.png' target='_blank'>
+<img src='feature_1022/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 1.0603)</p>
+<a href='feature_1022/instance_3.png' target='_blank'>
+<img src='feature_1022/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 1.0523)</p>
+<a href='feature_1022/instance_0.png' target='_blank'>
+<img src='feature_1022/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 1.0125)</p>
+<a href='feature_1022/instance_8.png' target='_blank'>
+<img src='feature_1022/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.9989)</p>
+<a href='feature_1022/instance_4.png' target='_blank'>
+<img src='feature_1022/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.9846)</p>
+<a href='feature_1022/instance_5.png' target='_blank'>
+<img src='feature_1022/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.9844)</p>
+<a href='feature_1022/instance_9.png' target='_blank'>
+<img src='feature_1022/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.9777)</p>
+<a href='feature_1022/instance_1.png' target='_blank'>
+<img src='feature_1022/instance_1.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-348' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_348_overlay.png' alt='Feature 348 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 6 (Activation: 1.0372)</p>
+<a href='feature_348/instance_6.png' target='_blank'>
+<img src='feature_348/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 1.0372)</p>
+<a href='feature_348/instance_2.png' target='_blank'>
+<img src='feature_348/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 1.0349)</p>
+<a href='feature_348/instance_0.png' target='_blank'>
+<img src='feature_348/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 1.0307)</p>
+<a href='feature_348/instance_3.png' target='_blank'>
+<img src='feature_348/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 1.0244)</p>
+<a href='feature_348/instance_8.png' target='_blank'>
+<img src='feature_348/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 1 (Activation: 1.0086)</p>
+<a href='feature_348/instance_1.png' target='_blank'>
+<img src='feature_348/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 1.0041)</p>
+<a href='feature_348/instance_5.png' target='_blank'>
+<img src='feature_348/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.9997)</p>
+<a href='feature_348/instance_9.png' target='_blank'>
+<img src='feature_348/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.9994)</p>
+<a href='feature_348/instance_7.png' target='_blank'>
+<img src='feature_348/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.9726)</p>
+<a href='feature_348/instance_4.png' target='_blank'>
+<img src='feature_348/instance_4.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-874' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_874_overlay.png' alt='Feature 874 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 6 (Activation: 1.1703)</p>
+<a href='feature_874/instance_6.png' target='_blank'>
+<img src='feature_874/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 1.1463)</p>
+<a href='feature_874/instance_2.png' target='_blank'>
+<img src='feature_874/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 1.1398)</p>
+<a href='feature_874/instance_7.png' target='_blank'>
+<img src='feature_874/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 1.0216)</p>
+<a href='feature_874/instance_0.png' target='_blank'>
+<img src='feature_874/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 1.0007)</p>
+<a href='feature_874/instance_3.png' target='_blank'>
+<img src='feature_874/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.9965)</p>
+<a href='feature_874/instance_1.png' target='_blank'>
+<img src='feature_874/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.9343)</p>
+<a href='feature_874/instance_4.png' target='_blank'>
+<img src='feature_874/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.9295)</p>
+<a href='feature_874/instance_5.png' target='_blank'>
+<img src='feature_874/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.9114)</p>
+<a href='feature_874/instance_8.png' target='_blank'>
+<img src='feature_874/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.8690)</p>
+<a href='feature_874/instance_9.png' target='_blank'>
+<img src='feature_874/instance_9.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-762' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_762_overlay.png' alt='Feature 762 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 1 (Activation: 1.0299)</p>
+<a href='feature_762/instance_1.png' target='_blank'>
+<img src='feature_762/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 1.0016)</p>
+<a href='feature_762/instance_9.png' target='_blank'>
+<img src='feature_762/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.9952)</p>
+<a href='feature_762/instance_6.png' target='_blank'>
+<img src='feature_762/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.9926)</p>
+<a href='feature_762/instance_2.png' target='_blank'>
+<img src='feature_762/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.9833)</p>
+<a href='feature_762/instance_4.png' target='_blank'>
+<img src='feature_762/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.9761)</p>
+<a href='feature_762/instance_0.png' target='_blank'>
+<img src='feature_762/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.9730)</p>
+<a href='feature_762/instance_3.png' target='_blank'>
+<img src='feature_762/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.9721)</p>
+<a href='feature_762/instance_5.png' target='_blank'>
+<img src='feature_762/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.9631)</p>
+<a href='feature_762/instance_8.png' target='_blank'>
+<img src='feature_762/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.9289)</p>
+<a href='feature_762/instance_7.png' target='_blank'>
+<img src='feature_762/instance_7.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-764' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_764_overlay.png' alt='Feature 764 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 6 (Activation: 1.0729)</p>
+<a href='feature_764/instance_6.png' target='_blank'>
+<img src='feature_764/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 1.0501)</p>
+<a href='feature_764/instance_3.png' target='_blank'>
+<img src='feature_764/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 1.0180)</p>
+<a href='feature_764/instance_2.png' target='_blank'>
+<img src='feature_764/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.9731)</p>
+<a href='feature_764/instance_7.png' target='_blank'>
+<img src='feature_764/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.9443)</p>
+<a href='feature_764/instance_9.png' target='_blank'>
+<img src='feature_764/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.9236)</p>
+<a href='feature_764/instance_0.png' target='_blank'>
+<img src='feature_764/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.9192)</p>
+<a href='feature_764/instance_4.png' target='_blank'>
+<img src='feature_764/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.8959)</p>
+<a href='feature_764/instance_1.png' target='_blank'>
+<img src='feature_764/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.8246)</p>
+<a href='feature_764/instance_8.png' target='_blank'>
+<img src='feature_764/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.8208)</p>
+<a href='feature_764/instance_5.png' target='_blank'>
+<img src='feature_764/instance_5.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-239' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_239_overlay.png' alt='Feature 239 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.9698)</p>
+<a href='feature_239/instance_1.png' target='_blank'>
+<img src='feature_239/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.9669)</p>
+<a href='feature_239/instance_5.png' target='_blank'>
+<img src='feature_239/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.9626)</p>
+<a href='feature_239/instance_8.png' target='_blank'>
+<img src='feature_239/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.9545)</p>
+<a href='feature_239/instance_9.png' target='_blank'>
+<img src='feature_239/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.9517)</p>
+<a href='feature_239/instance_4.png' target='_blank'>
+<img src='feature_239/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.9321)</p>
+<a href='feature_239/instance_0.png' target='_blank'>
+<img src='feature_239/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.9239)</p>
+<a href='feature_239/instance_2.png' target='_blank'>
+<img src='feature_239/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.9179)</p>
+<a href='feature_239/instance_3.png' target='_blank'>
+<img src='feature_239/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.9035)</p>
+<a href='feature_239/instance_6.png' target='_blank'>
+<img src='feature_239/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.8830)</p>
+<a href='feature_239/instance_7.png' target='_blank'>
+<img src='feature_239/instance_7.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-951' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_951_overlay.png' alt='Feature 951 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.9676)</p>
+<a href='feature_951/instance_7.png' target='_blank'>
+<img src='feature_951/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.9656)</p>
+<a href='feature_951/instance_2.png' target='_blank'>
+<img src='feature_951/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.9635)</p>
+<a href='feature_951/instance_6.png' target='_blank'>
+<img src='feature_951/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.9552)</p>
+<a href='feature_951/instance_0.png' target='_blank'>
+<img src='feature_951/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.9299)</p>
+<a href='feature_951/instance_3.png' target='_blank'>
+<img src='feature_951/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.9261)</p>
+<a href='feature_951/instance_8.png' target='_blank'>
+<img src='feature_951/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.9189)</p>
+<a href='feature_951/instance_5.png' target='_blank'>
+<img src='feature_951/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.9001)</p>
+<a href='feature_951/instance_4.png' target='_blank'>
+<img src='feature_951/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.8870)</p>
+<a href='feature_951/instance_9.png' target='_blank'>
+<img src='feature_951/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.8829)</p>
+<a href='feature_951/instance_1.png' target='_blank'>
+<img src='feature_951/instance_1.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-374' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_374_overlay.png' alt='Feature 374 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 1 (Activation: 1.0864)</p>
+<a href='feature_374/instance_1.png' target='_blank'>
+<img src='feature_374/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.9666)</p>
+<a href='feature_374/instance_5.png' target='_blank'>
+<img src='feature_374/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.9320)</p>
+<a href='feature_374/instance_9.png' target='_blank'>
+<img src='feature_374/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.8998)</p>
+<a href='feature_374/instance_2.png' target='_blank'>
+<img src='feature_374/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.8914)</p>
+<a href='feature_374/instance_6.png' target='_blank'>
+<img src='feature_374/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.8851)</p>
+<a href='feature_374/instance_3.png' target='_blank'>
+<img src='feature_374/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.8420)</p>
+<a href='feature_374/instance_4.png' target='_blank'>
+<img src='feature_374/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.8100)</p>
+<a href='feature_374/instance_8.png' target='_blank'>
+<img src='feature_374/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.7894)</p>
+<a href='feature_374/instance_0.png' target='_blank'>
+<img src='feature_374/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.6328)</p>
+<a href='feature_374/instance_7.png' target='_blank'>
+<img src='feature_374/instance_7.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-898' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_898_overlay.png' alt='Feature 898 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.8879)</p>
+<a href='feature_898/instance_7.png' target='_blank'>
+<img src='feature_898/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.8766)</p>
+<a href='feature_898/instance_2.png' target='_blank'>
+<img src='feature_898/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.8621)</p>
+<a href='feature_898/instance_8.png' target='_blank'>
+<img src='feature_898/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.8471)</p>
+<a href='feature_898/instance_5.png' target='_blank'>
+<img src='feature_898/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.8419)</p>
+<a href='feature_898/instance_6.png' target='_blank'>
+<img src='feature_898/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.8411)</p>
+<a href='feature_898/instance_3.png' target='_blank'>
+<img src='feature_898/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.8374)</p>
+<a href='feature_898/instance_0.png' target='_blank'>
+<img src='feature_898/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.8258)</p>
+<a href='feature_898/instance_9.png' target='_blank'>
+<img src='feature_898/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.8244)</p>
+<a href='feature_898/instance_4.png' target='_blank'>
+<img src='feature_898/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.8037)</p>
+<a href='feature_898/instance_1.png' target='_blank'>
+<img src='feature_898/instance_1.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-50' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_50_overlay.png' alt='Feature 50 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.8269)</p>
+<a href='feature_50/instance_0.png' target='_blank'>
+<img src='feature_50/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.7870)</p>
+<a href='feature_50/instance_4.png' target='_blank'>
+<img src='feature_50/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.7788)</p>
+<a href='feature_50/instance_2.png' target='_blank'>
+<img src='feature_50/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.7743)</p>
+<a href='feature_50/instance_9.png' target='_blank'>
+<img src='feature_50/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.7698)</p>
+<a href='feature_50/instance_8.png' target='_blank'>
+<img src='feature_50/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.7656)</p>
+<a href='feature_50/instance_6.png' target='_blank'>
+<img src='feature_50/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.7616)</p>
+<a href='feature_50/instance_7.png' target='_blank'>
+<img src='feature_50/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.7540)</p>
+<a href='feature_50/instance_1.png' target='_blank'>
+<img src='feature_50/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.7197)</p>
+<a href='feature_50/instance_3.png' target='_blank'>
+<img src='feature_50/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.7090)</p>
+<a href='feature_50/instance_5.png' target='_blank'>
+<img src='feature_50/instance_5.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-323' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_323_overlay.png' alt='Feature 323 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.8033)</p>
+<a href='feature_323/instance_6.png' target='_blank'>
+<img src='feature_323/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.8000)</p>
+<a href='feature_323/instance_1.png' target='_blank'>
+<img src='feature_323/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.7876)</p>
+<a href='feature_323/instance_2.png' target='_blank'>
+<img src='feature_323/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.7873)</p>
+<a href='feature_323/instance_9.png' target='_blank'>
+<img src='feature_323/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.7754)</p>
+<a href='feature_323/instance_3.png' target='_blank'>
+<img src='feature_323/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.7562)</p>
+<a href='feature_323/instance_4.png' target='_blank'>
+<img src='feature_323/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.7383)</p>
+<a href='feature_323/instance_0.png' target='_blank'>
+<img src='feature_323/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.7330)</p>
+<a href='feature_323/instance_7.png' target='_blank'>
+<img src='feature_323/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.7034)</p>
+<a href='feature_323/instance_5.png' target='_blank'>
+<img src='feature_323/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.6848)</p>
+<a href='feature_323/instance_8.png' target='_blank'>
+<img src='feature_323/instance_8.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-82' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_82_overlay.png' alt='Feature 82 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.7768)</p>
+<a href='feature_82/instance_9.png' target='_blank'>
+<img src='feature_82/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.7661)</p>
+<a href='feature_82/instance_1.png' target='_blank'>
+<img src='feature_82/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.7513)</p>
+<a href='feature_82/instance_8.png' target='_blank'>
+<img src='feature_82/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.7495)</p>
+<a href='feature_82/instance_0.png' target='_blank'>
+<img src='feature_82/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.7445)</p>
+<a href='feature_82/instance_4.png' target='_blank'>
+<img src='feature_82/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.7318)</p>
+<a href='feature_82/instance_2.png' target='_blank'>
+<img src='feature_82/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.7307)</p>
+<a href='feature_82/instance_5.png' target='_blank'>
+<img src='feature_82/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.7300)</p>
+<a href='feature_82/instance_6.png' target='_blank'>
+<img src='feature_82/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.7198)</p>
+<a href='feature_82/instance_3.png' target='_blank'>
+<img src='feature_82/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.7125)</p>
+<a href='feature_82/instance_7.png' target='_blank'>
+<img src='feature_82/instance_7.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-948' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_948_overlay.png' alt='Feature 948 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.7730)</p>
+<a href='feature_948/instance_7.png' target='_blank'>
+<img src='feature_948/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.7714)</p>
+<a href='feature_948/instance_2.png' target='_blank'>
+<img src='feature_948/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.7545)</p>
+<a href='feature_948/instance_6.png' target='_blank'>
+<img src='feature_948/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.7467)</p>
+<a href='feature_948/instance_3.png' target='_blank'>
+<img src='feature_948/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.7433)</p>
+<a href='feature_948/instance_8.png' target='_blank'>
+<img src='feature_948/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.7327)</p>
+<a href='feature_948/instance_0.png' target='_blank'>
+<img src='feature_948/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.7314)</p>
+<a href='feature_948/instance_9.png' target='_blank'>
+<img src='feature_948/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.7183)</p>
+<a href='feature_948/instance_5.png' target='_blank'>
+<img src='feature_948/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.7177)</p>
+<a href='feature_948/instance_4.png' target='_blank'>
+<img src='feature_948/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.6989)</p>
+<a href='feature_948/instance_1.png' target='_blank'>
+<img src='feature_948/instance_1.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-978' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_978_overlay.png' alt='Feature 978 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.7456)</p>
+<a href='feature_978/instance_9.png' target='_blank'>
+<img src='feature_978/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.7156)</p>
+<a href='feature_978/instance_7.png' target='_blank'>
+<img src='feature_978/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.7057)</p>
+<a href='feature_978/instance_8.png' target='_blank'>
+<img src='feature_978/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.6946)</p>
+<a href='feature_978/instance_4.png' target='_blank'>
+<img src='feature_978/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.6816)</p>
+<a href='feature_978/instance_3.png' target='_blank'>
+<img src='feature_978/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.6799)</p>
+<a href='feature_978/instance_2.png' target='_blank'>
+<img src='feature_978/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.6783)</p>
+<a href='feature_978/instance_5.png' target='_blank'>
+<img src='feature_978/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.6577)</p>
+<a href='feature_978/instance_6.png' target='_blank'>
+<img src='feature_978/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.6505)</p>
+<a href='feature_978/instance_1.png' target='_blank'>
+<img src='feature_978/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.6204)</p>
+<a href='feature_978/instance_0.png' target='_blank'>
+<img src='feature_978/instance_0.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-272' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_272_overlay.png' alt='Feature 272 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.7275)</p>
+<a href='feature_272/instance_1.png' target='_blank'>
+<img src='feature_272/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.7152)</p>
+<a href='feature_272/instance_6.png' target='_blank'>
+<img src='feature_272/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.7005)</p>
+<a href='feature_272/instance_3.png' target='_blank'>
+<img src='feature_272/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.6996)</p>
+<a href='feature_272/instance_9.png' target='_blank'>
+<img src='feature_272/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.6751)</p>
+<a href='feature_272/instance_0.png' target='_blank'>
+<img src='feature_272/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.6727)</p>
+<a href='feature_272/instance_2.png' target='_blank'>
+<img src='feature_272/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.6721)</p>
+<a href='feature_272/instance_4.png' target='_blank'>
+<img src='feature_272/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.6627)</p>
+<a href='feature_272/instance_7.png' target='_blank'>
+<img src='feature_272/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.6367)</p>
+<a href='feature_272/instance_5.png' target='_blank'>
+<img src='feature_272/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.6030)</p>
+<a href='feature_272/instance_8.png' target='_blank'>
+<img src='feature_272/instance_8.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-770' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_770_overlay.png' alt='Feature 770 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.6949)</p>
+<a href='feature_770/instance_6.png' target='_blank'>
+<img src='feature_770/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.6800)</p>
+<a href='feature_770/instance_1.png' target='_blank'>
+<img src='feature_770/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.6756)</p>
+<a href='feature_770/instance_2.png' target='_blank'>
+<img src='feature_770/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.6733)</p>
+<a href='feature_770/instance_0.png' target='_blank'>
+<img src='feature_770/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.6514)</p>
+<a href='feature_770/instance_3.png' target='_blank'>
+<img src='feature_770/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.6439)</p>
+<a href='feature_770/instance_7.png' target='_blank'>
+<img src='feature_770/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.6306)</p>
+<a href='feature_770/instance_9.png' target='_blank'>
+<img src='feature_770/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.6291)</p>
+<a href='feature_770/instance_4.png' target='_blank'>
+<img src='feature_770/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.6044)</p>
+<a href='feature_770/instance_8.png' target='_blank'>
+<img src='feature_770/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.5865)</p>
+<a href='feature_770/instance_5.png' target='_blank'>
+<img src='feature_770/instance_5.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-555' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_555_overlay.png' alt='Feature 555 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.6437)</p>
+<a href='feature_555/instance_1.png' target='_blank'>
+<img src='feature_555/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.6405)</p>
+<a href='feature_555/instance_6.png' target='_blank'>
+<img src='feature_555/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.6391)</p>
+<a href='feature_555/instance_9.png' target='_blank'>
+<img src='feature_555/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.6316)</p>
+<a href='feature_555/instance_0.png' target='_blank'>
+<img src='feature_555/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.6299)</p>
+<a href='feature_555/instance_4.png' target='_blank'>
+<img src='feature_555/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.6202)</p>
+<a href='feature_555/instance_2.png' target='_blank'>
+<img src='feature_555/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.6067)</p>
+<a href='feature_555/instance_3.png' target='_blank'>
+<img src='feature_555/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.5962)</p>
+<a href='feature_555/instance_8.png' target='_blank'>
+<img src='feature_555/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.5938)</p>
+<a href='feature_555/instance_7.png' target='_blank'>
+<img src='feature_555/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.5623)</p>
+<a href='feature_555/instance_5.png' target='_blank'>
+<img src='feature_555/instance_5.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-730' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_730_overlay.png' alt='Feature 730 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.6895)</p>
+<a href='feature_730/instance_1.png' target='_blank'>
+<img src='feature_730/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.6646)</p>
+<a href='feature_730/instance_6.png' target='_blank'>
+<img src='feature_730/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.6622)</p>
+<a href='feature_730/instance_0.png' target='_blank'>
+<img src='feature_730/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.6467)</p>
+<a href='feature_730/instance_9.png' target='_blank'>
+<img src='feature_730/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.6101)</p>
+<a href='feature_730/instance_4.png' target='_blank'>
+<img src='feature_730/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.5616)</p>
+<a href='feature_730/instance_3.png' target='_blank'>
+<img src='feature_730/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.5335)</p>
+<a href='feature_730/instance_2.png' target='_blank'>
+<img src='feature_730/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.5217)</p>
+<a href='feature_730/instance_8.png' target='_blank'>
+<img src='feature_730/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.5036)</p>
+<a href='feature_730/instance_7.png' target='_blank'>
+<img src='feature_730/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.4453)</p>
+<a href='feature_730/instance_5.png' target='_blank'>
+<img src='feature_730/instance_5.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-329' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_329_overlay.png' alt='Feature 329 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.6084)</p>
+<a href='feature_329/instance_1.png' target='_blank'>
+<img src='feature_329/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.5982)</p>
+<a href='feature_329/instance_0.png' target='_blank'>
+<img src='feature_329/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.5915)</p>
+<a href='feature_329/instance_4.png' target='_blank'>
+<img src='feature_329/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.5868)</p>
+<a href='feature_329/instance_6.png' target='_blank'>
+<img src='feature_329/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.5759)</p>
+<a href='feature_329/instance_9.png' target='_blank'>
+<img src='feature_329/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.5646)</p>
+<a href='feature_329/instance_7.png' target='_blank'>
+<img src='feature_329/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.5613)</p>
+<a href='feature_329/instance_2.png' target='_blank'>
+<img src='feature_329/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.5554)</p>
+<a href='feature_329/instance_3.png' target='_blank'>
+<img src='feature_329/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.5469)</p>
+<a href='feature_329/instance_5.png' target='_blank'>
+<img src='feature_329/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.5429)</p>
+<a href='feature_329/instance_8.png' target='_blank'>
+<img src='feature_329/instance_8.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-689' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_689_overlay.png' alt='Feature 689 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.6177)</p>
+<a href='feature_689/instance_6.png' target='_blank'>
+<img src='feature_689/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.5921)</p>
+<a href='feature_689/instance_1.png' target='_blank'>
+<img src='feature_689/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.5850)</p>
+<a href='feature_689/instance_2.png' target='_blank'>
+<img src='feature_689/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.5815)</p>
+<a href='feature_689/instance_3.png' target='_blank'>
+<img src='feature_689/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.5727)</p>
+<a href='feature_689/instance_9.png' target='_blank'>
+<img src='feature_689/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.5693)</p>
+<a href='feature_689/instance_5.png' target='_blank'>
+<img src='feature_689/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.5606)</p>
+<a href='feature_689/instance_7.png' target='_blank'>
+<img src='feature_689/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.5582)</p>
+<a href='feature_689/instance_0.png' target='_blank'>
+<img src='feature_689/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.5461)</p>
+<a href='feature_689/instance_4.png' target='_blank'>
+<img src='feature_689/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.5407)</p>
+<a href='feature_689/instance_8.png' target='_blank'>
+<img src='feature_689/instance_8.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-287' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_287_overlay.png' alt='Feature 287 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.6633)</p>
+<a href='feature_287/instance_6.png' target='_blank'>
+<img src='feature_287/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.6576)</p>
+<a href='feature_287/instance_1.png' target='_blank'>
+<img src='feature_287/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.6379)</p>
+<a href='feature_287/instance_7.png' target='_blank'>
+<img src='feature_287/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.6168)</p>
+<a href='feature_287/instance_9.png' target='_blank'>
+<img src='feature_287/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.5548)</p>
+<a href='feature_287/instance_4.png' target='_blank'>
+<img src='feature_287/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.5475)</p>
+<a href='feature_287/instance_8.png' target='_blank'>
+<img src='feature_287/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.5372)</p>
+<a href='feature_287/instance_3.png' target='_blank'>
+<img src='feature_287/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.5264)</p>
+<a href='feature_287/instance_5.png' target='_blank'>
+<img src='feature_287/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.4898)</p>
+<a href='feature_287/instance_2.png' target='_blank'>
+<img src='feature_287/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.4725)</p>
+<a href='feature_287/instance_0.png' target='_blank'>
+<img src='feature_287/instance_0.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-310' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_310_overlay.png' alt='Feature 310 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.6547)</p>
+<a href='feature_310/instance_7.png' target='_blank'>
+<img src='feature_310/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.6180)</p>
+<a href='feature_310/instance_8.png' target='_blank'>
+<img src='feature_310/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.6092)</p>
+<a href='feature_310/instance_0.png' target='_blank'>
+<img src='feature_310/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.5668)</p>
+<a href='feature_310/instance_4.png' target='_blank'>
+<img src='feature_310/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.5282)</p>
+<a href='feature_310/instance_9.png' target='_blank'>
+<img src='feature_310/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.5114)</p>
+<a href='feature_310/instance_6.png' target='_blank'>
+<img src='feature_310/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.5104)</p>
+<a href='feature_310/instance_5.png' target='_blank'>
+<img src='feature_310/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.4835)</p>
+<a href='feature_310/instance_3.png' target='_blank'>
+<img src='feature_310/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.4615)</p>
+<a href='feature_310/instance_1.png' target='_blank'>
+<img src='feature_310/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.4506)</p>
+<a href='feature_310/instance_2.png' target='_blank'>
+<img src='feature_310/instance_2.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-243' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_243_overlay.png' alt='Feature 243 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.5599)</p>
+<a href='feature_243/instance_0.png' target='_blank'>
+<img src='feature_243/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.5443)</p>
+<a href='feature_243/instance_8.png' target='_blank'>
+<img src='feature_243/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.5406)</p>
+<a href='feature_243/instance_2.png' target='_blank'>
+<img src='feature_243/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.5397)</p>
+<a href='feature_243/instance_6.png' target='_blank'>
+<img src='feature_243/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.5319)</p>
+<a href='feature_243/instance_5.png' target='_blank'>
+<img src='feature_243/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.5307)</p>
+<a href='feature_243/instance_3.png' target='_blank'>
+<img src='feature_243/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.5253)</p>
+<a href='feature_243/instance_1.png' target='_blank'>
+<img src='feature_243/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.5198)</p>
+<a href='feature_243/instance_7.png' target='_blank'>
+<img src='feature_243/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.5062)</p>
+<a href='feature_243/instance_4.png' target='_blank'>
+<img src='feature_243/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.5059)</p>
+<a href='feature_243/instance_9.png' target='_blank'>
+<img src='feature_243/instance_9.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-710' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_710_overlay.png' alt='Feature 710 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.6606)</p>
+<a href='feature_710/instance_1.png' target='_blank'>
+<img src='feature_710/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.6296)</p>
+<a href='feature_710/instance_9.png' target='_blank'>
+<img src='feature_710/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.5492)</p>
+<a href='feature_710/instance_8.png' target='_blank'>
+<img src='feature_710/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.5471)</p>
+<a href='feature_710/instance_3.png' target='_blank'>
+<img src='feature_710/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.5444)</p>
+<a href='feature_710/instance_5.png' target='_blank'>
+<img src='feature_710/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.5088)</p>
+<a href='feature_710/instance_6.png' target='_blank'>
+<img src='feature_710/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.4998)</p>
+<a href='feature_710/instance_7.png' target='_blank'>
+<img src='feature_710/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.4735)</p>
+<a href='feature_710/instance_2.png' target='_blank'>
+<img src='feature_710/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.4414)</p>
+<a href='feature_710/instance_4.png' target='_blank'>
+<img src='feature_710/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.4015)</p>
+<a href='feature_710/instance_0.png' target='_blank'>
+<img src='feature_710/instance_0.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-63' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_63_overlay.png' alt='Feature 63 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.6109)</p>
+<a href='feature_63/instance_8.png' target='_blank'>
+<img src='feature_63/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.6075)</p>
+<a href='feature_63/instance_2.png' target='_blank'>
+<img src='feature_63/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.5815)</p>
+<a href='feature_63/instance_9.png' target='_blank'>
+<img src='feature_63/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.5238)</p>
+<a href='feature_63/instance_4.png' target='_blank'>
+<img src='feature_63/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.5103)</p>
+<a href='feature_63/instance_7.png' target='_blank'>
+<img src='feature_63/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.5101)</p>
+<a href='feature_63/instance_5.png' target='_blank'>
+<img src='feature_63/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.4803)</p>
+<a href='feature_63/instance_3.png' target='_blank'>
+<img src='feature_63/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.4583)</p>
+<a href='feature_63/instance_6.png' target='_blank'>
+<img src='feature_63/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.4447)</p>
+<a href='feature_63/instance_0.png' target='_blank'>
+<img src='feature_63/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.4042)</p>
+<a href='feature_63/instance_1.png' target='_blank'>
+<img src='feature_63/instance_1.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-596' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_596_overlay.png' alt='Feature 596 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.5660)</p>
+<a href='feature_596/instance_1.png' target='_blank'>
+<img src='feature_596/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.5454)</p>
+<a href='feature_596/instance_6.png' target='_blank'>
+<img src='feature_596/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.5294)</p>
+<a href='feature_596/instance_2.png' target='_blank'>
+<img src='feature_596/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.5188)</p>
+<a href='feature_596/instance_9.png' target='_blank'>
+<img src='feature_596/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.5180)</p>
+<a href='feature_596/instance_3.png' target='_blank'>
+<img src='feature_596/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.4915)</p>
+<a href='feature_596/instance_4.png' target='_blank'>
+<img src='feature_596/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.4910)</p>
+<a href='feature_596/instance_0.png' target='_blank'>
+<img src='feature_596/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.4817)</p>
+<a href='feature_596/instance_7.png' target='_blank'>
+<img src='feature_596/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.4660)</p>
+<a href='feature_596/instance_8.png' target='_blank'>
+<img src='feature_596/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.4450)</p>
+<a href='feature_596/instance_5.png' target='_blank'>
+<img src='feature_596/instance_5.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-76' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_76_overlay.png' alt='Feature 76 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.5425)</p>
+<a href='feature_76/instance_9.png' target='_blank'>
+<img src='feature_76/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.5278)</p>
+<a href='feature_76/instance_1.png' target='_blank'>
+<img src='feature_76/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.5230)</p>
+<a href='feature_76/instance_6.png' target='_blank'>
+<img src='feature_76/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.5004)</p>
+<a href='feature_76/instance_3.png' target='_blank'>
+<img src='feature_76/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.4976)</p>
+<a href='feature_76/instance_2.png' target='_blank'>
+<img src='feature_76/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.4811)</p>
+<a href='feature_76/instance_0.png' target='_blank'>
+<img src='feature_76/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.4730)</p>
+<a href='feature_76/instance_4.png' target='_blank'>
+<img src='feature_76/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.4707)</p>
+<a href='feature_76/instance_8.png' target='_blank'>
+<img src='feature_76/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.4585)</p>
+<a href='feature_76/instance_7.png' target='_blank'>
+<img src='feature_76/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.4350)</p>
+<a href='feature_76/instance_5.png' target='_blank'>
+<img src='feature_76/instance_5.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-501' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_501_overlay.png' alt='Feature 501 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.5161)</p>
+<a href='feature_501/instance_6.png' target='_blank'>
+<img src='feature_501/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.5060)</p>
+<a href='feature_501/instance_2.png' target='_blank'>
+<img src='feature_501/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.5013)</p>
+<a href='feature_501/instance_7.png' target='_blank'>
+<img src='feature_501/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.4984)</p>
+<a href='feature_501/instance_3.png' target='_blank'>
+<img src='feature_501/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.4954)</p>
+<a href='feature_501/instance_9.png' target='_blank'>
+<img src='feature_501/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.4874)</p>
+<a href='feature_501/instance_8.png' target='_blank'>
+<img src='feature_501/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.4751)</p>
+<a href='feature_501/instance_0.png' target='_blank'>
+<img src='feature_501/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.4749)</p>
+<a href='feature_501/instance_4.png' target='_blank'>
+<img src='feature_501/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.4701)</p>
+<a href='feature_501/instance_1.png' target='_blank'>
+<img src='feature_501/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.4603)</p>
+<a href='feature_501/instance_5.png' target='_blank'>
+<img src='feature_501/instance_5.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-787' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_787_overlay.png' alt='Feature 787 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.5102)</p>
+<a href='feature_787/instance_1.png' target='_blank'>
+<img src='feature_787/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.5046)</p>
+<a href='feature_787/instance_6.png' target='_blank'>
+<img src='feature_787/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.4915)</p>
+<a href='feature_787/instance_9.png' target='_blank'>
+<img src='feature_787/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.4872)</p>
+<a href='feature_787/instance_2.png' target='_blank'>
+<img src='feature_787/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.4763)</p>
+<a href='feature_787/instance_5.png' target='_blank'>
+<img src='feature_787/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.4746)</p>
+<a href='feature_787/instance_8.png' target='_blank'>
+<img src='feature_787/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.4727)</p>
+<a href='feature_787/instance_3.png' target='_blank'>
+<img src='feature_787/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.4703)</p>
+<a href='feature_787/instance_4.png' target='_blank'>
+<img src='feature_787/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.4586)</p>
+<a href='feature_787/instance_7.png' target='_blank'>
+<img src='feature_787/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.4428)</p>
+<a href='feature_787/instance_0.png' target='_blank'>
+<img src='feature_787/instance_0.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-210' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_210_overlay.png' alt='Feature 210 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.5837)</p>
+<a href='feature_210/instance_9.png' target='_blank'>
+<img src='feature_210/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.5186)</p>
+<a href='feature_210/instance_3.png' target='_blank'>
+<img src='feature_210/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.4940)</p>
+<a href='feature_210/instance_7.png' target='_blank'>
+<img src='feature_210/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.4924)</p>
+<a href='feature_210/instance_4.png' target='_blank'>
+<img src='feature_210/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.4806)</p>
+<a href='feature_210/instance_6.png' target='_blank'>
+<img src='feature_210/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.4618)</p>
+<a href='feature_210/instance_1.png' target='_blank'>
+<img src='feature_210/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.4565)</p>
+<a href='feature_210/instance_0.png' target='_blank'>
+<img src='feature_210/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.4452)</p>
+<a href='feature_210/instance_5.png' target='_blank'>
+<img src='feature_210/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.4271)</p>
+<a href='feature_210/instance_2.png' target='_blank'>
+<img src='feature_210/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.4257)</p>
+<a href='feature_210/instance_8.png' target='_blank'>
+<img src='feature_210/instance_8.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-829' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_829_overlay.png' alt='Feature 829 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.4836)</p>
+<a href='feature_829/instance_6.png' target='_blank'>
+<img src='feature_829/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.4654)</p>
+<a href='feature_829/instance_7.png' target='_blank'>
+<img src='feature_829/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.4646)</p>
+<a href='feature_829/instance_2.png' target='_blank'>
+<img src='feature_829/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.4617)</p>
+<a href='feature_829/instance_5.png' target='_blank'>
+<img src='feature_829/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.4604)</p>
+<a href='feature_829/instance_9.png' target='_blank'>
+<img src='feature_829/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.4516)</p>
+<a href='feature_829/instance_3.png' target='_blank'>
+<img src='feature_829/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.4513)</p>
+<a href='feature_829/instance_1.png' target='_blank'>
+<img src='feature_829/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.4477)</p>
+<a href='feature_829/instance_8.png' target='_blank'>
+<img src='feature_829/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.4416)</p>
+<a href='feature_829/instance_0.png' target='_blank'>
+<img src='feature_829/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.4356)</p>
+<a href='feature_829/instance_4.png' target='_blank'>
+<img src='feature_829/instance_4.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-836' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_836_overlay.png' alt='Feature 836 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.4757)</p>
+<a href='feature_836/instance_2.png' target='_blank'>
+<img src='feature_836/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.4746)</p>
+<a href='feature_836/instance_6.png' target='_blank'>
+<img src='feature_836/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.4687)</p>
+<a href='feature_836/instance_1.png' target='_blank'>
+<img src='feature_836/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.4685)</p>
+<a href='feature_836/instance_0.png' target='_blank'>
+<img src='feature_836/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.4592)</p>
+<a href='feature_836/instance_3.png' target='_blank'>
+<img src='feature_836/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.4444)</p>
+<a href='feature_836/instance_9.png' target='_blank'>
+<img src='feature_836/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.4335)</p>
+<a href='feature_836/instance_7.png' target='_blank'>
+<img src='feature_836/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.4322)</p>
+<a href='feature_836/instance_4.png' target='_blank'>
+<img src='feature_836/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.4303)</p>
+<a href='feature_836/instance_5.png' target='_blank'>
+<img src='feature_836/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.4250)</p>
+<a href='feature_836/instance_8.png' target='_blank'>
+<img src='feature_836/instance_8.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-616' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_616_overlay.png' alt='Feature 616 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.4679)</p>
+<a href='feature_616/instance_1.png' target='_blank'>
+<img src='feature_616/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.4522)</p>
+<a href='feature_616/instance_9.png' target='_blank'>
+<img src='feature_616/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.4500)</p>
+<a href='feature_616/instance_6.png' target='_blank'>
+<img src='feature_616/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.4438)</p>
+<a href='feature_616/instance_3.png' target='_blank'>
+<img src='feature_616/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.4399)</p>
+<a href='feature_616/instance_0.png' target='_blank'>
+<img src='feature_616/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.4335)</p>
+<a href='feature_616/instance_5.png' target='_blank'>
+<img src='feature_616/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.4317)</p>
+<a href='feature_616/instance_4.png' target='_blank'>
+<img src='feature_616/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.4295)</p>
+<a href='feature_616/instance_7.png' target='_blank'>
+<img src='feature_616/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.4245)</p>
+<a href='feature_616/instance_2.png' target='_blank'>
+<img src='feature_616/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.4202)</p>
+<a href='feature_616/instance_8.png' target='_blank'>
+<img src='feature_616/instance_8.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-376' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_376_overlay.png' alt='Feature 376 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.5301)</p>
+<a href='feature_376/instance_1.png' target='_blank'>
+<img src='feature_376/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.4948)</p>
+<a href='feature_376/instance_6.png' target='_blank'>
+<img src='feature_376/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.4646)</p>
+<a href='feature_376/instance_3.png' target='_blank'>
+<img src='feature_376/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.4602)</p>
+<a href='feature_376/instance_7.png' target='_blank'>
+<img src='feature_376/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.4510)</p>
+<a href='feature_376/instance_9.png' target='_blank'>
+<img src='feature_376/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.4316)</p>
+<a href='feature_376/instance_0.png' target='_blank'>
+<img src='feature_376/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.4156)</p>
+<a href='feature_376/instance_4.png' target='_blank'>
+<img src='feature_376/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.4120)</p>
+<a href='feature_376/instance_5.png' target='_blank'>
+<img src='feature_376/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.3669)</p>
+<a href='feature_376/instance_2.png' target='_blank'>
+<img src='feature_376/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.2980)</p>
+<a href='feature_376/instance_8.png' target='_blank'>
+<img src='feature_376/instance_8.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='feature-443' class='feature-content' style='display:none;'>
+<div class='image-container'>
+<img src='feature_overlays/feature_443_overlay.png' alt='Feature 443 Overlay' class='feature-overlay-img'>
+</div>
+<h3>Top Instances for Feature</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Instance 6 (Activation: 0.4524)</p>
+<a href='feature_443/instance_6.png' target='_blank'>
+<img src='feature_443/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 2 (Activation: 0.4442)</p>
+<a href='feature_443/instance_2.png' target='_blank'>
+<img src='feature_443/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 9 (Activation: 0.4393)</p>
+<a href='feature_443/instance_9.png' target='_blank'>
+<img src='feature_443/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 7 (Activation: 0.4382)</p>
+<a href='feature_443/instance_7.png' target='_blank'>
+<img src='feature_443/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 1 (Activation: 0.4290)</p>
+<a href='feature_443/instance_1.png' target='_blank'>
+<img src='feature_443/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 3 (Activation: 0.4268)</p>
+<a href='feature_443/instance_3.png' target='_blank'>
+<img src='feature_443/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 4 (Activation: 0.4168)</p>
+<a href='feature_443/instance_4.png' target='_blank'>
+<img src='feature_443/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 0 (Activation: 0.4159)</p>
+<a href='feature_443/instance_0.png' target='_blank'>
+<img src='feature_443/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 8 (Activation: 0.4139)</p>
+<a href='feature_443/instance_8.png' target='_blank'>
+<img src='feature_443/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Instance 5 (Activation: 0.3970)</p>
+<a href='feature_443/instance_5.png' target='_blank'>
+<img src='feature_443/instance_5.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+</div>
+<div id='instance-view' class='view-container'>
+<div id='instance-0' class='instance-content' style='display:block;'>
+<h2>Instance 0 Analysis</h2>
+<h3>Features Activation</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Feature 941 (Activation: 1.3476)</p>
+<a href='feature_941/instance_0.png' target='_blank'>
+<img src='feature_941/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 409 (Activation: 1.3194)</p>
+<a href='feature_409/instance_0.png' target='_blank'>
+<img src='feature_409/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 894 (Activation: 1.2010)</p>
+<a href='feature_894/instance_0.png' target='_blank'>
+<img src='feature_894/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 945 (Activation: 1.1124)</p>
+<a href='feature_945/instance_0.png' target='_blank'>
+<img src='feature_945/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 227 (Activation: 1.0578)</p>
+<a href='feature_227/instance_0.png' target='_blank'>
+<img src='feature_227/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 1022 (Activation: 1.0523)</p>
+<a href='feature_1022/instance_0.png' target='_blank'>
+<img src='feature_1022/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 348 (Activation: 1.0349)</p>
+<a href='feature_348/instance_0.png' target='_blank'>
+<img src='feature_348/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 874 (Activation: 1.0216)</p>
+<a href='feature_874/instance_0.png' target='_blank'>
+<img src='feature_874/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 762 (Activation: 0.9761)</p>
+<a href='feature_762/instance_0.png' target='_blank'>
+<img src='feature_762/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 951 (Activation: 0.9552)</p>
+<a href='feature_951/instance_0.png' target='_blank'>
+<img src='feature_951/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 239 (Activation: 0.9321)</p>
+<a href='feature_239/instance_0.png' target='_blank'>
+<img src='feature_239/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 764 (Activation: 0.9236)</p>
+<a href='feature_764/instance_0.png' target='_blank'>
+<img src='feature_764/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 898 (Activation: 0.8374)</p>
+<a href='feature_898/instance_0.png' target='_blank'>
+<img src='feature_898/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 50 (Activation: 0.8269)</p>
+<a href='feature_50/instance_0.png' target='_blank'>
+<img src='feature_50/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 374 (Activation: 0.7894)</p>
+<a href='feature_374/instance_0.png' target='_blank'>
+<img src='feature_374/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 82 (Activation: 0.7495)</p>
+<a href='feature_82/instance_0.png' target='_blank'>
+<img src='feature_82/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 323 (Activation: 0.7383)</p>
+<a href='feature_323/instance_0.png' target='_blank'>
+<img src='feature_323/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 948 (Activation: 0.7327)</p>
+<a href='feature_948/instance_0.png' target='_blank'>
+<img src='feature_948/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 272 (Activation: 0.6751)</p>
+<a href='feature_272/instance_0.png' target='_blank'>
+<img src='feature_272/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 770 (Activation: 0.6733)</p>
+<a href='feature_770/instance_0.png' target='_blank'>
+<img src='feature_770/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 730 (Activation: 0.6622)</p>
+<a href='feature_730/instance_0.png' target='_blank'>
+<img src='feature_730/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 555 (Activation: 0.6316)</p>
+<a href='feature_555/instance_0.png' target='_blank'>
+<img src='feature_555/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 978 (Activation: 0.6204)</p>
+<a href='feature_978/instance_0.png' target='_blank'>
+<img src='feature_978/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 310 (Activation: 0.6092)</p>
+<a href='feature_310/instance_0.png' target='_blank'>
+<img src='feature_310/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 329 (Activation: 0.5982)</p>
+<a href='feature_329/instance_0.png' target='_blank'>
+<img src='feature_329/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 243 (Activation: 0.5599)</p>
+<a href='feature_243/instance_0.png' target='_blank'>
+<img src='feature_243/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 689 (Activation: 0.5582)</p>
+<a href='feature_689/instance_0.png' target='_blank'>
+<img src='feature_689/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 596 (Activation: 0.4910)</p>
+<a href='feature_596/instance_0.png' target='_blank'>
+<img src='feature_596/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 76 (Activation: 0.4811)</p>
+<a href='feature_76/instance_0.png' target='_blank'>
+<img src='feature_76/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 501 (Activation: 0.4751)</p>
+<a href='feature_501/instance_0.png' target='_blank'>
+<img src='feature_501/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 287 (Activation: 0.4725)</p>
+<a href='feature_287/instance_0.png' target='_blank'>
+<img src='feature_287/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 836 (Activation: 0.4685)</p>
+<a href='feature_836/instance_0.png' target='_blank'>
+<img src='feature_836/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 210 (Activation: 0.4565)</p>
+<a href='feature_210/instance_0.png' target='_blank'>
+<img src='feature_210/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 63 (Activation: 0.4447)</p>
+<a href='feature_63/instance_0.png' target='_blank'>
+<img src='feature_63/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 787 (Activation: 0.4428)</p>
+<a href='feature_787/instance_0.png' target='_blank'>
+<img src='feature_787/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 829 (Activation: 0.4416)</p>
+<a href='feature_829/instance_0.png' target='_blank'>
+<img src='feature_829/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 616 (Activation: 0.4399)</p>
+<a href='feature_616/instance_0.png' target='_blank'>
+<img src='feature_616/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 376 (Activation: 0.4316)</p>
+<a href='feature_376/instance_0.png' target='_blank'>
+<img src='feature_376/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 443 (Activation: 0.4159)</p>
+<a href='feature_443/instance_0.png' target='_blank'>
+<img src='feature_443/instance_0.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 710 (Activation: 0.4015)</p>
+<a href='feature_710/instance_0.png' target='_blank'>
+<img src='feature_710/instance_0.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='instance-1' class='instance-content' style='display:none;'>
+<h2>Instance 1 Analysis</h2>
+<h3>Features Activation</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Feature 409 (Activation: 1.4714)</p>
+<a href='feature_409/instance_1.png' target='_blank'>
+<img src='feature_409/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 227 (Activation: 1.1919)</p>
+<a href='feature_227/instance_1.png' target='_blank'>
+<img src='feature_227/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 941 (Activation: 1.1680)</p>
+<a href='feature_941/instance_1.png' target='_blank'>
+<img src='feature_941/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 945 (Activation: 1.1122)</p>
+<a href='feature_945/instance_1.png' target='_blank'>
+<img src='feature_945/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 374 (Activation: 1.0864)</p>
+<a href='feature_374/instance_1.png' target='_blank'>
+<img src='feature_374/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 894 (Activation: 1.0333)</p>
+<a href='feature_894/instance_1.png' target='_blank'>
+<img src='feature_894/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 762 (Activation: 1.0299)</p>
+<a href='feature_762/instance_1.png' target='_blank'>
+<img src='feature_762/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 348 (Activation: 1.0086)</p>
+<a href='feature_348/instance_1.png' target='_blank'>
+<img src='feature_348/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 874 (Activation: 0.9965)</p>
+<a href='feature_874/instance_1.png' target='_blank'>
+<img src='feature_874/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 1022 (Activation: 0.9777)</p>
+<a href='feature_1022/instance_1.png' target='_blank'>
+<img src='feature_1022/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 239 (Activation: 0.9698)</p>
+<a href='feature_239/instance_1.png' target='_blank'>
+<img src='feature_239/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 764 (Activation: 0.8959)</p>
+<a href='feature_764/instance_1.png' target='_blank'>
+<img src='feature_764/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 951 (Activation: 0.8829)</p>
+<a href='feature_951/instance_1.png' target='_blank'>
+<img src='feature_951/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 898 (Activation: 0.8037)</p>
+<a href='feature_898/instance_1.png' target='_blank'>
+<img src='feature_898/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 323 (Activation: 0.8000)</p>
+<a href='feature_323/instance_1.png' target='_blank'>
+<img src='feature_323/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 82 (Activation: 0.7661)</p>
+<a href='feature_82/instance_1.png' target='_blank'>
+<img src='feature_82/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 50 (Activation: 0.7540)</p>
+<a href='feature_50/instance_1.png' target='_blank'>
+<img src='feature_50/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 272 (Activation: 0.7275)</p>
+<a href='feature_272/instance_1.png' target='_blank'>
+<img src='feature_272/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 948 (Activation: 0.6989)</p>
+<a href='feature_948/instance_1.png' target='_blank'>
+<img src='feature_948/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 730 (Activation: 0.6895)</p>
+<a href='feature_730/instance_1.png' target='_blank'>
+<img src='feature_730/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 770 (Activation: 0.6800)</p>
+<a href='feature_770/instance_1.png' target='_blank'>
+<img src='feature_770/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 710 (Activation: 0.6606)</p>
+<a href='feature_710/instance_1.png' target='_blank'>
+<img src='feature_710/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 287 (Activation: 0.6576)</p>
+<a href='feature_287/instance_1.png' target='_blank'>
+<img src='feature_287/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 978 (Activation: 0.6505)</p>
+<a href='feature_978/instance_1.png' target='_blank'>
+<img src='feature_978/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 555 (Activation: 0.6437)</p>
+<a href='feature_555/instance_1.png' target='_blank'>
+<img src='feature_555/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 329 (Activation: 0.6084)</p>
+<a href='feature_329/instance_1.png' target='_blank'>
+<img src='feature_329/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 689 (Activation: 0.5921)</p>
+<a href='feature_689/instance_1.png' target='_blank'>
+<img src='feature_689/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 596 (Activation: 0.5660)</p>
+<a href='feature_596/instance_1.png' target='_blank'>
+<img src='feature_596/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 376 (Activation: 0.5301)</p>
+<a href='feature_376/instance_1.png' target='_blank'>
+<img src='feature_376/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 76 (Activation: 0.5278)</p>
+<a href='feature_76/instance_1.png' target='_blank'>
+<img src='feature_76/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 243 (Activation: 0.5253)</p>
+<a href='feature_243/instance_1.png' target='_blank'>
+<img src='feature_243/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 787 (Activation: 0.5102)</p>
+<a href='feature_787/instance_1.png' target='_blank'>
+<img src='feature_787/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 501 (Activation: 0.4701)</p>
+<a href='feature_501/instance_1.png' target='_blank'>
+<img src='feature_501/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 836 (Activation: 0.4687)</p>
+<a href='feature_836/instance_1.png' target='_blank'>
+<img src='feature_836/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 616 (Activation: 0.4679)</p>
+<a href='feature_616/instance_1.png' target='_blank'>
+<img src='feature_616/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 210 (Activation: 0.4618)</p>
+<a href='feature_210/instance_1.png' target='_blank'>
+<img src='feature_210/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 310 (Activation: 0.4615)</p>
+<a href='feature_310/instance_1.png' target='_blank'>
+<img src='feature_310/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 829 (Activation: 0.4513)</p>
+<a href='feature_829/instance_1.png' target='_blank'>
+<img src='feature_829/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 443 (Activation: 0.4290)</p>
+<a href='feature_443/instance_1.png' target='_blank'>
+<img src='feature_443/instance_1.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 63 (Activation: 0.4042)</p>
+<a href='feature_63/instance_1.png' target='_blank'>
+<img src='feature_63/instance_1.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='instance-2' class='instance-content' style='display:none;'>
+<h2>Instance 2 Analysis</h2>
+<h3>Features Activation</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Feature 409 (Activation: 1.3805)</p>
+<a href='feature_409/instance_2.png' target='_blank'>
+<img src='feature_409/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 941 (Activation: 1.2698)</p>
+<a href='feature_941/instance_2.png' target='_blank'>
+<img src='feature_941/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 874 (Activation: 1.1463)</p>
+<a href='feature_874/instance_2.png' target='_blank'>
+<img src='feature_874/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 945 (Activation: 1.1448)</p>
+<a href='feature_945/instance_2.png' target='_blank'>
+<img src='feature_945/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 894 (Activation: 1.1446)</p>
+<a href='feature_894/instance_2.png' target='_blank'>
+<img src='feature_894/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 1022 (Activation: 1.0888)</p>
+<a href='feature_1022/instance_2.png' target='_blank'>
+<img src='feature_1022/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 227 (Activation: 1.0601)</p>
+<a href='feature_227/instance_2.png' target='_blank'>
+<img src='feature_227/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 348 (Activation: 1.0372)</p>
+<a href='feature_348/instance_2.png' target='_blank'>
+<img src='feature_348/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 764 (Activation: 1.0180)</p>
+<a href='feature_764/instance_2.png' target='_blank'>
+<img src='feature_764/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 762 (Activation: 0.9926)</p>
+<a href='feature_762/instance_2.png' target='_blank'>
+<img src='feature_762/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 951 (Activation: 0.9656)</p>
+<a href='feature_951/instance_2.png' target='_blank'>
+<img src='feature_951/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 239 (Activation: 0.9239)</p>
+<a href='feature_239/instance_2.png' target='_blank'>
+<img src='feature_239/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 374 (Activation: 0.8998)</p>
+<a href='feature_374/instance_2.png' target='_blank'>
+<img src='feature_374/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 898 (Activation: 0.8766)</p>
+<a href='feature_898/instance_2.png' target='_blank'>
+<img src='feature_898/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 323 (Activation: 0.7876)</p>
+<a href='feature_323/instance_2.png' target='_blank'>
+<img src='feature_323/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 50 (Activation: 0.7788)</p>
+<a href='feature_50/instance_2.png' target='_blank'>
+<img src='feature_50/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 948 (Activation: 0.7714)</p>
+<a href='feature_948/instance_2.png' target='_blank'>
+<img src='feature_948/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 82 (Activation: 0.7318)</p>
+<a href='feature_82/instance_2.png' target='_blank'>
+<img src='feature_82/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 978 (Activation: 0.6799)</p>
+<a href='feature_978/instance_2.png' target='_blank'>
+<img src='feature_978/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 770 (Activation: 0.6756)</p>
+<a href='feature_770/instance_2.png' target='_blank'>
+<img src='feature_770/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 272 (Activation: 0.6727)</p>
+<a href='feature_272/instance_2.png' target='_blank'>
+<img src='feature_272/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 555 (Activation: 0.6202)</p>
+<a href='feature_555/instance_2.png' target='_blank'>
+<img src='feature_555/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 63 (Activation: 0.6075)</p>
+<a href='feature_63/instance_2.png' target='_blank'>
+<img src='feature_63/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 689 (Activation: 0.5850)</p>
+<a href='feature_689/instance_2.png' target='_blank'>
+<img src='feature_689/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 329 (Activation: 0.5613)</p>
+<a href='feature_329/instance_2.png' target='_blank'>
+<img src='feature_329/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 243 (Activation: 0.5406)</p>
+<a href='feature_243/instance_2.png' target='_blank'>
+<img src='feature_243/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 730 (Activation: 0.5335)</p>
+<a href='feature_730/instance_2.png' target='_blank'>
+<img src='feature_730/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 596 (Activation: 0.5294)</p>
+<a href='feature_596/instance_2.png' target='_blank'>
+<img src='feature_596/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 501 (Activation: 0.5060)</p>
+<a href='feature_501/instance_2.png' target='_blank'>
+<img src='feature_501/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 76 (Activation: 0.4976)</p>
+<a href='feature_76/instance_2.png' target='_blank'>
+<img src='feature_76/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 287 (Activation: 0.4898)</p>
+<a href='feature_287/instance_2.png' target='_blank'>
+<img src='feature_287/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 787 (Activation: 0.4872)</p>
+<a href='feature_787/instance_2.png' target='_blank'>
+<img src='feature_787/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 836 (Activation: 0.4757)</p>
+<a href='feature_836/instance_2.png' target='_blank'>
+<img src='feature_836/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 710 (Activation: 0.4735)</p>
+<a href='feature_710/instance_2.png' target='_blank'>
+<img src='feature_710/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 829 (Activation: 0.4646)</p>
+<a href='feature_829/instance_2.png' target='_blank'>
+<img src='feature_829/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 310 (Activation: 0.4506)</p>
+<a href='feature_310/instance_2.png' target='_blank'>
+<img src='feature_310/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 443 (Activation: 0.4442)</p>
+<a href='feature_443/instance_2.png' target='_blank'>
+<img src='feature_443/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 210 (Activation: 0.4271)</p>
+<a href='feature_210/instance_2.png' target='_blank'>
+<img src='feature_210/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 616 (Activation: 0.4245)</p>
+<a href='feature_616/instance_2.png' target='_blank'>
+<img src='feature_616/instance_2.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 376 (Activation: 0.3669)</p>
+<a href='feature_376/instance_2.png' target='_blank'>
+<img src='feature_376/instance_2.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='instance-3' class='instance-content' style='display:none;'>
+<h2>Instance 3 Analysis</h2>
+<h3>Features Activation</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Feature 409 (Activation: 1.3435)</p>
+<a href='feature_409/instance_3.png' target='_blank'>
+<img src='feature_409/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 894 (Activation: 1.2201)</p>
+<a href='feature_894/instance_3.png' target='_blank'>
+<img src='feature_894/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 941 (Activation: 1.1506)</p>
+<a href='feature_941/instance_3.png' target='_blank'>
+<img src='feature_941/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 945 (Activation: 1.1185)</p>
+<a href='feature_945/instance_3.png' target='_blank'>
+<img src='feature_945/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 1022 (Activation: 1.0603)</p>
+<a href='feature_1022/instance_3.png' target='_blank'>
+<img src='feature_1022/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 227 (Activation: 1.0579)</p>
+<a href='feature_227/instance_3.png' target='_blank'>
+<img src='feature_227/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 764 (Activation: 1.0501)</p>
+<a href='feature_764/instance_3.png' target='_blank'>
+<img src='feature_764/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 348 (Activation: 1.0307)</p>
+<a href='feature_348/instance_3.png' target='_blank'>
+<img src='feature_348/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 874 (Activation: 1.0007)</p>
+<a href='feature_874/instance_3.png' target='_blank'>
+<img src='feature_874/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 762 (Activation: 0.9730)</p>
+<a href='feature_762/instance_3.png' target='_blank'>
+<img src='feature_762/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 951 (Activation: 0.9299)</p>
+<a href='feature_951/instance_3.png' target='_blank'>
+<img src='feature_951/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 239 (Activation: 0.9179)</p>
+<a href='feature_239/instance_3.png' target='_blank'>
+<img src='feature_239/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 374 (Activation: 0.8851)</p>
+<a href='feature_374/instance_3.png' target='_blank'>
+<img src='feature_374/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 898 (Activation: 0.8411)</p>
+<a href='feature_898/instance_3.png' target='_blank'>
+<img src='feature_898/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 323 (Activation: 0.7754)</p>
+<a href='feature_323/instance_3.png' target='_blank'>
+<img src='feature_323/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 948 (Activation: 0.7467)</p>
+<a href='feature_948/instance_3.png' target='_blank'>
+<img src='feature_948/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 82 (Activation: 0.7198)</p>
+<a href='feature_82/instance_3.png' target='_blank'>
+<img src='feature_82/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 50 (Activation: 0.7197)</p>
+<a href='feature_50/instance_3.png' target='_blank'>
+<img src='feature_50/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 272 (Activation: 0.7005)</p>
+<a href='feature_272/instance_3.png' target='_blank'>
+<img src='feature_272/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 978 (Activation: 0.6816)</p>
+<a href='feature_978/instance_3.png' target='_blank'>
+<img src='feature_978/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 770 (Activation: 0.6514)</p>
+<a href='feature_770/instance_3.png' target='_blank'>
+<img src='feature_770/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 555 (Activation: 0.6067)</p>
+<a href='feature_555/instance_3.png' target='_blank'>
+<img src='feature_555/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 689 (Activation: 0.5815)</p>
+<a href='feature_689/instance_3.png' target='_blank'>
+<img src='feature_689/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 730 (Activation: 0.5616)</p>
+<a href='feature_730/instance_3.png' target='_blank'>
+<img src='feature_730/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 329 (Activation: 0.5554)</p>
+<a href='feature_329/instance_3.png' target='_blank'>
+<img src='feature_329/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 710 (Activation: 0.5471)</p>
+<a href='feature_710/instance_3.png' target='_blank'>
+<img src='feature_710/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 287 (Activation: 0.5372)</p>
+<a href='feature_287/instance_3.png' target='_blank'>
+<img src='feature_287/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 243 (Activation: 0.5307)</p>
+<a href='feature_243/instance_3.png' target='_blank'>
+<img src='feature_243/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 210 (Activation: 0.5186)</p>
+<a href='feature_210/instance_3.png' target='_blank'>
+<img src='feature_210/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 596 (Activation: 0.5180)</p>
+<a href='feature_596/instance_3.png' target='_blank'>
+<img src='feature_596/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 76 (Activation: 0.5004)</p>
+<a href='feature_76/instance_3.png' target='_blank'>
+<img src='feature_76/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 501 (Activation: 0.4984)</p>
+<a href='feature_501/instance_3.png' target='_blank'>
+<img src='feature_501/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 310 (Activation: 0.4835)</p>
+<a href='feature_310/instance_3.png' target='_blank'>
+<img src='feature_310/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 63 (Activation: 0.4803)</p>
+<a href='feature_63/instance_3.png' target='_blank'>
+<img src='feature_63/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 787 (Activation: 0.4727)</p>
+<a href='feature_787/instance_3.png' target='_blank'>
+<img src='feature_787/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 376 (Activation: 0.4646)</p>
+<a href='feature_376/instance_3.png' target='_blank'>
+<img src='feature_376/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 836 (Activation: 0.4592)</p>
+<a href='feature_836/instance_3.png' target='_blank'>
+<img src='feature_836/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 829 (Activation: 0.4516)</p>
+<a href='feature_829/instance_3.png' target='_blank'>
+<img src='feature_829/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 616 (Activation: 0.4438)</p>
+<a href='feature_616/instance_3.png' target='_blank'>
+<img src='feature_616/instance_3.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 443 (Activation: 0.4268)</p>
+<a href='feature_443/instance_3.png' target='_blank'>
+<img src='feature_443/instance_3.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='instance-4' class='instance-content' style='display:none;'>
+<h2>Instance 4 Analysis</h2>
+<h3>Features Activation</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Feature 409 (Activation: 1.5155)</p>
+<a href='feature_409/instance_4.png' target='_blank'>
+<img src='feature_409/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 941 (Activation: 1.2627)</p>
+<a href='feature_941/instance_4.png' target='_blank'>
+<img src='feature_941/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 227 (Activation: 1.1793)</p>
+<a href='feature_227/instance_4.png' target='_blank'>
+<img src='feature_227/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 945 (Activation: 1.0828)</p>
+<a href='feature_945/instance_4.png' target='_blank'>
+<img src='feature_945/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 894 (Activation: 1.0130)</p>
+<a href='feature_894/instance_4.png' target='_blank'>
+<img src='feature_894/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 1022 (Activation: 0.9989)</p>
+<a href='feature_1022/instance_4.png' target='_blank'>
+<img src='feature_1022/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 762 (Activation: 0.9833)</p>
+<a href='feature_762/instance_4.png' target='_blank'>
+<img src='feature_762/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 348 (Activation: 0.9726)</p>
+<a href='feature_348/instance_4.png' target='_blank'>
+<img src='feature_348/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 239 (Activation: 0.9517)</p>
+<a href='feature_239/instance_4.png' target='_blank'>
+<img src='feature_239/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 874 (Activation: 0.9343)</p>
+<a href='feature_874/instance_4.png' target='_blank'>
+<img src='feature_874/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 764 (Activation: 0.9192)</p>
+<a href='feature_764/instance_4.png' target='_blank'>
+<img src='feature_764/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 951 (Activation: 0.9001)</p>
+<a href='feature_951/instance_4.png' target='_blank'>
+<img src='feature_951/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 374 (Activation: 0.8420)</p>
+<a href='feature_374/instance_4.png' target='_blank'>
+<img src='feature_374/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 898 (Activation: 0.8244)</p>
+<a href='feature_898/instance_4.png' target='_blank'>
+<img src='feature_898/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 50 (Activation: 0.7870)</p>
+<a href='feature_50/instance_4.png' target='_blank'>
+<img src='feature_50/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 323 (Activation: 0.7562)</p>
+<a href='feature_323/instance_4.png' target='_blank'>
+<img src='feature_323/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 82 (Activation: 0.7445)</p>
+<a href='feature_82/instance_4.png' target='_blank'>
+<img src='feature_82/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 948 (Activation: 0.7177)</p>
+<a href='feature_948/instance_4.png' target='_blank'>
+<img src='feature_948/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 978 (Activation: 0.6946)</p>
+<a href='feature_978/instance_4.png' target='_blank'>
+<img src='feature_978/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 272 (Activation: 0.6721)</p>
+<a href='feature_272/instance_4.png' target='_blank'>
+<img src='feature_272/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 555 (Activation: 0.6299)</p>
+<a href='feature_555/instance_4.png' target='_blank'>
+<img src='feature_555/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 770 (Activation: 0.6291)</p>
+<a href='feature_770/instance_4.png' target='_blank'>
+<img src='feature_770/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 730 (Activation: 0.6101)</p>
+<a href='feature_730/instance_4.png' target='_blank'>
+<img src='feature_730/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 329 (Activation: 0.5915)</p>
+<a href='feature_329/instance_4.png' target='_blank'>
+<img src='feature_329/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 310 (Activation: 0.5668)</p>
+<a href='feature_310/instance_4.png' target='_blank'>
+<img src='feature_310/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 287 (Activation: 0.5548)</p>
+<a href='feature_287/instance_4.png' target='_blank'>
+<img src='feature_287/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 689 (Activation: 0.5461)</p>
+<a href='feature_689/instance_4.png' target='_blank'>
+<img src='feature_689/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 63 (Activation: 0.5238)</p>
+<a href='feature_63/instance_4.png' target='_blank'>
+<img src='feature_63/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 243 (Activation: 0.5062)</p>
+<a href='feature_243/instance_4.png' target='_blank'>
+<img src='feature_243/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 210 (Activation: 0.4924)</p>
+<a href='feature_210/instance_4.png' target='_blank'>
+<img src='feature_210/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 596 (Activation: 0.4915)</p>
+<a href='feature_596/instance_4.png' target='_blank'>
+<img src='feature_596/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 501 (Activation: 0.4749)</p>
+<a href='feature_501/instance_4.png' target='_blank'>
+<img src='feature_501/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 76 (Activation: 0.4730)</p>
+<a href='feature_76/instance_4.png' target='_blank'>
+<img src='feature_76/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 787 (Activation: 0.4703)</p>
+<a href='feature_787/instance_4.png' target='_blank'>
+<img src='feature_787/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 710 (Activation: 0.4414)</p>
+<a href='feature_710/instance_4.png' target='_blank'>
+<img src='feature_710/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 829 (Activation: 0.4356)</p>
+<a href='feature_829/instance_4.png' target='_blank'>
+<img src='feature_829/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 836 (Activation: 0.4322)</p>
+<a href='feature_836/instance_4.png' target='_blank'>
+<img src='feature_836/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 616 (Activation: 0.4317)</p>
+<a href='feature_616/instance_4.png' target='_blank'>
+<img src='feature_616/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 443 (Activation: 0.4168)</p>
+<a href='feature_443/instance_4.png' target='_blank'>
+<img src='feature_443/instance_4.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 376 (Activation: 0.4156)</p>
+<a href='feature_376/instance_4.png' target='_blank'>
+<img src='feature_376/instance_4.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='instance-5' class='instance-content' style='display:none;'>
+<h2>Instance 5 Analysis</h2>
+<h3>Features Activation</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Feature 409 (Activation: 1.4862)</p>
+<a href='feature_409/instance_5.png' target='_blank'>
+<img src='feature_409/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 894 (Activation: 1.2168)</p>
+<a href='feature_894/instance_5.png' target='_blank'>
+<img src='feature_894/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 941 (Activation: 1.1919)</p>
+<a href='feature_941/instance_5.png' target='_blank'>
+<img src='feature_941/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 227 (Activation: 1.1233)</p>
+<a href='feature_227/instance_5.png' target='_blank'>
+<img src='feature_227/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 945 (Activation: 1.0392)</p>
+<a href='feature_945/instance_5.png' target='_blank'>
+<img src='feature_945/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 348 (Activation: 1.0041)</p>
+<a href='feature_348/instance_5.png' target='_blank'>
+<img src='feature_348/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 1022 (Activation: 0.9846)</p>
+<a href='feature_1022/instance_5.png' target='_blank'>
+<img src='feature_1022/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 762 (Activation: 0.9721)</p>
+<a href='feature_762/instance_5.png' target='_blank'>
+<img src='feature_762/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 239 (Activation: 0.9669)</p>
+<a href='feature_239/instance_5.png' target='_blank'>
+<img src='feature_239/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 374 (Activation: 0.9666)</p>
+<a href='feature_374/instance_5.png' target='_blank'>
+<img src='feature_374/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 874 (Activation: 0.9295)</p>
+<a href='feature_874/instance_5.png' target='_blank'>
+<img src='feature_874/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 951 (Activation: 0.9189)</p>
+<a href='feature_951/instance_5.png' target='_blank'>
+<img src='feature_951/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 898 (Activation: 0.8471)</p>
+<a href='feature_898/instance_5.png' target='_blank'>
+<img src='feature_898/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 764 (Activation: 0.8208)</p>
+<a href='feature_764/instance_5.png' target='_blank'>
+<img src='feature_764/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 82 (Activation: 0.7307)</p>
+<a href='feature_82/instance_5.png' target='_blank'>
+<img src='feature_82/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 948 (Activation: 0.7183)</p>
+<a href='feature_948/instance_5.png' target='_blank'>
+<img src='feature_948/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 50 (Activation: 0.7090)</p>
+<a href='feature_50/instance_5.png' target='_blank'>
+<img src='feature_50/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 323 (Activation: 0.7034)</p>
+<a href='feature_323/instance_5.png' target='_blank'>
+<img src='feature_323/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 978 (Activation: 0.6783)</p>
+<a href='feature_978/instance_5.png' target='_blank'>
+<img src='feature_978/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 272 (Activation: 0.6367)</p>
+<a href='feature_272/instance_5.png' target='_blank'>
+<img src='feature_272/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 770 (Activation: 0.5865)</p>
+<a href='feature_770/instance_5.png' target='_blank'>
+<img src='feature_770/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 689 (Activation: 0.5693)</p>
+<a href='feature_689/instance_5.png' target='_blank'>
+<img src='feature_689/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 555 (Activation: 0.5623)</p>
+<a href='feature_555/instance_5.png' target='_blank'>
+<img src='feature_555/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 329 (Activation: 0.5469)</p>
+<a href='feature_329/instance_5.png' target='_blank'>
+<img src='feature_329/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 710 (Activation: 0.5444)</p>
+<a href='feature_710/instance_5.png' target='_blank'>
+<img src='feature_710/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 243 (Activation: 0.5319)</p>
+<a href='feature_243/instance_5.png' target='_blank'>
+<img src='feature_243/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 287 (Activation: 0.5264)</p>
+<a href='feature_287/instance_5.png' target='_blank'>
+<img src='feature_287/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 310 (Activation: 0.5104)</p>
+<a href='feature_310/instance_5.png' target='_blank'>
+<img src='feature_310/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 63 (Activation: 0.5101)</p>
+<a href='feature_63/instance_5.png' target='_blank'>
+<img src='feature_63/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 787 (Activation: 0.4763)</p>
+<a href='feature_787/instance_5.png' target='_blank'>
+<img src='feature_787/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 829 (Activation: 0.4617)</p>
+<a href='feature_829/instance_5.png' target='_blank'>
+<img src='feature_829/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 501 (Activation: 0.4603)</p>
+<a href='feature_501/instance_5.png' target='_blank'>
+<img src='feature_501/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 730 (Activation: 0.4453)</p>
+<a href='feature_730/instance_5.png' target='_blank'>
+<img src='feature_730/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 210 (Activation: 0.4452)</p>
+<a href='feature_210/instance_5.png' target='_blank'>
+<img src='feature_210/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 596 (Activation: 0.4450)</p>
+<a href='feature_596/instance_5.png' target='_blank'>
+<img src='feature_596/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 76 (Activation: 0.4350)</p>
+<a href='feature_76/instance_5.png' target='_blank'>
+<img src='feature_76/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 616 (Activation: 0.4335)</p>
+<a href='feature_616/instance_5.png' target='_blank'>
+<img src='feature_616/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 836 (Activation: 0.4303)</p>
+<a href='feature_836/instance_5.png' target='_blank'>
+<img src='feature_836/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 376 (Activation: 0.4120)</p>
+<a href='feature_376/instance_5.png' target='_blank'>
+<img src='feature_376/instance_5.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 443 (Activation: 0.3970)</p>
+<a href='feature_443/instance_5.png' target='_blank'>
+<img src='feature_443/instance_5.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='instance-6' class='instance-content' style='display:none;'>
+<h2>Instance 6 Analysis</h2>
+<h3>Features Activation</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Feature 409 (Activation: 1.3526)</p>
+<a href='feature_409/instance_6.png' target='_blank'>
+<img src='feature_409/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 945 (Activation: 1.1723)</p>
+<a href='feature_945/instance_6.png' target='_blank'>
+<img src='feature_945/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 874 (Activation: 1.1703)</p>
+<a href='feature_874/instance_6.png' target='_blank'>
+<img src='feature_874/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 894 (Activation: 1.1639)</p>
+<a href='feature_894/instance_6.png' target='_blank'>
+<img src='feature_894/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 941 (Activation: 1.1394)</p>
+<a href='feature_941/instance_6.png' target='_blank'>
+<img src='feature_941/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 1022 (Activation: 1.1055)</p>
+<a href='feature_1022/instance_6.png' target='_blank'>
+<img src='feature_1022/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 227 (Activation: 1.0786)</p>
+<a href='feature_227/instance_6.png' target='_blank'>
+<img src='feature_227/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 764 (Activation: 1.0729)</p>
+<a href='feature_764/instance_6.png' target='_blank'>
+<img src='feature_764/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 348 (Activation: 1.0372)</p>
+<a href='feature_348/instance_6.png' target='_blank'>
+<img src='feature_348/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 762 (Activation: 0.9952)</p>
+<a href='feature_762/instance_6.png' target='_blank'>
+<img src='feature_762/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 951 (Activation: 0.9635)</p>
+<a href='feature_951/instance_6.png' target='_blank'>
+<img src='feature_951/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 239 (Activation: 0.9035)</p>
+<a href='feature_239/instance_6.png' target='_blank'>
+<img src='feature_239/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 374 (Activation: 0.8914)</p>
+<a href='feature_374/instance_6.png' target='_blank'>
+<img src='feature_374/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 898 (Activation: 0.8419)</p>
+<a href='feature_898/instance_6.png' target='_blank'>
+<img src='feature_898/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 323 (Activation: 0.8033)</p>
+<a href='feature_323/instance_6.png' target='_blank'>
+<img src='feature_323/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 50 (Activation: 0.7656)</p>
+<a href='feature_50/instance_6.png' target='_blank'>
+<img src='feature_50/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 948 (Activation: 0.7545)</p>
+<a href='feature_948/instance_6.png' target='_blank'>
+<img src='feature_948/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 82 (Activation: 0.7300)</p>
+<a href='feature_82/instance_6.png' target='_blank'>
+<img src='feature_82/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 272 (Activation: 0.7152)</p>
+<a href='feature_272/instance_6.png' target='_blank'>
+<img src='feature_272/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 770 (Activation: 0.6949)</p>
+<a href='feature_770/instance_6.png' target='_blank'>
+<img src='feature_770/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 730 (Activation: 0.6646)</p>
+<a href='feature_730/instance_6.png' target='_blank'>
+<img src='feature_730/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 287 (Activation: 0.6633)</p>
+<a href='feature_287/instance_6.png' target='_blank'>
+<img src='feature_287/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 978 (Activation: 0.6577)</p>
+<a href='feature_978/instance_6.png' target='_blank'>
+<img src='feature_978/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 555 (Activation: 0.6405)</p>
+<a href='feature_555/instance_6.png' target='_blank'>
+<img src='feature_555/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 689 (Activation: 0.6177)</p>
+<a href='feature_689/instance_6.png' target='_blank'>
+<img src='feature_689/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 329 (Activation: 0.5868)</p>
+<a href='feature_329/instance_6.png' target='_blank'>
+<img src='feature_329/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 596 (Activation: 0.5454)</p>
+<a href='feature_596/instance_6.png' target='_blank'>
+<img src='feature_596/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 243 (Activation: 0.5397)</p>
+<a href='feature_243/instance_6.png' target='_blank'>
+<img src='feature_243/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 76 (Activation: 0.5230)</p>
+<a href='feature_76/instance_6.png' target='_blank'>
+<img src='feature_76/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 501 (Activation: 0.5161)</p>
+<a href='feature_501/instance_6.png' target='_blank'>
+<img src='feature_501/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 310 (Activation: 0.5114)</p>
+<a href='feature_310/instance_6.png' target='_blank'>
+<img src='feature_310/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 710 (Activation: 0.5088)</p>
+<a href='feature_710/instance_6.png' target='_blank'>
+<img src='feature_710/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 787 (Activation: 0.5046)</p>
+<a href='feature_787/instance_6.png' target='_blank'>
+<img src='feature_787/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 376 (Activation: 0.4948)</p>
+<a href='feature_376/instance_6.png' target='_blank'>
+<img src='feature_376/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 829 (Activation: 0.4836)</p>
+<a href='feature_829/instance_6.png' target='_blank'>
+<img src='feature_829/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 210 (Activation: 0.4806)</p>
+<a href='feature_210/instance_6.png' target='_blank'>
+<img src='feature_210/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 836 (Activation: 0.4746)</p>
+<a href='feature_836/instance_6.png' target='_blank'>
+<img src='feature_836/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 63 (Activation: 0.4583)</p>
+<a href='feature_63/instance_6.png' target='_blank'>
+<img src='feature_63/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 443 (Activation: 0.4524)</p>
+<a href='feature_443/instance_6.png' target='_blank'>
+<img src='feature_443/instance_6.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 616 (Activation: 0.4500)</p>
+<a href='feature_616/instance_6.png' target='_blank'>
+<img src='feature_616/instance_6.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='instance-7' class='instance-content' style='display:none;'>
+<h2>Instance 7 Analysis</h2>
+<h3>Features Activation</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Feature 409 (Activation: 1.4364)</p>
+<a href='feature_409/instance_7.png' target='_blank'>
+<img src='feature_409/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 941 (Activation: 1.2016)</p>
+<a href='feature_941/instance_7.png' target='_blank'>
+<img src='feature_941/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 894 (Activation: 1.1835)</p>
+<a href='feature_894/instance_7.png' target='_blank'>
+<img src='feature_894/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 945 (Activation: 1.1482)</p>
+<a href='feature_945/instance_7.png' target='_blank'>
+<img src='feature_945/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 874 (Activation: 1.1398)</p>
+<a href='feature_874/instance_7.png' target='_blank'>
+<img src='feature_874/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 227 (Activation: 1.1235)</p>
+<a href='feature_227/instance_7.png' target='_blank'>
+<img src='feature_227/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 1022 (Activation: 1.1142)</p>
+<a href='feature_1022/instance_7.png' target='_blank'>
+<img src='feature_1022/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 348 (Activation: 0.9994)</p>
+<a href='feature_348/instance_7.png' target='_blank'>
+<img src='feature_348/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 764 (Activation: 0.9731)</p>
+<a href='feature_764/instance_7.png' target='_blank'>
+<img src='feature_764/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 951 (Activation: 0.9676)</p>
+<a href='feature_951/instance_7.png' target='_blank'>
+<img src='feature_951/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 762 (Activation: 0.9289)</p>
+<a href='feature_762/instance_7.png' target='_blank'>
+<img src='feature_762/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 898 (Activation: 0.8879)</p>
+<a href='feature_898/instance_7.png' target='_blank'>
+<img src='feature_898/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 239 (Activation: 0.8830)</p>
+<a href='feature_239/instance_7.png' target='_blank'>
+<img src='feature_239/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 948 (Activation: 0.7730)</p>
+<a href='feature_948/instance_7.png' target='_blank'>
+<img src='feature_948/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 50 (Activation: 0.7616)</p>
+<a href='feature_50/instance_7.png' target='_blank'>
+<img src='feature_50/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 323 (Activation: 0.7330)</p>
+<a href='feature_323/instance_7.png' target='_blank'>
+<img src='feature_323/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 978 (Activation: 0.7156)</p>
+<a href='feature_978/instance_7.png' target='_blank'>
+<img src='feature_978/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 82 (Activation: 0.7125)</p>
+<a href='feature_82/instance_7.png' target='_blank'>
+<img src='feature_82/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 272 (Activation: 0.6627)</p>
+<a href='feature_272/instance_7.png' target='_blank'>
+<img src='feature_272/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 310 (Activation: 0.6547)</p>
+<a href='feature_310/instance_7.png' target='_blank'>
+<img src='feature_310/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 770 (Activation: 0.6439)</p>
+<a href='feature_770/instance_7.png' target='_blank'>
+<img src='feature_770/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 287 (Activation: 0.6379)</p>
+<a href='feature_287/instance_7.png' target='_blank'>
+<img src='feature_287/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 374 (Activation: 0.6328)</p>
+<a href='feature_374/instance_7.png' target='_blank'>
+<img src='feature_374/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 555 (Activation: 0.5938)</p>
+<a href='feature_555/instance_7.png' target='_blank'>
+<img src='feature_555/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 329 (Activation: 0.5646)</p>
+<a href='feature_329/instance_7.png' target='_blank'>
+<img src='feature_329/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 689 (Activation: 0.5606)</p>
+<a href='feature_689/instance_7.png' target='_blank'>
+<img src='feature_689/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 243 (Activation: 0.5198)</p>
+<a href='feature_243/instance_7.png' target='_blank'>
+<img src='feature_243/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 63 (Activation: 0.5103)</p>
+<a href='feature_63/instance_7.png' target='_blank'>
+<img src='feature_63/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 730 (Activation: 0.5036)</p>
+<a href='feature_730/instance_7.png' target='_blank'>
+<img src='feature_730/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 501 (Activation: 0.5013)</p>
+<a href='feature_501/instance_7.png' target='_blank'>
+<img src='feature_501/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 710 (Activation: 0.4998)</p>
+<a href='feature_710/instance_7.png' target='_blank'>
+<img src='feature_710/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 210 (Activation: 0.4940)</p>
+<a href='feature_210/instance_7.png' target='_blank'>
+<img src='feature_210/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 596 (Activation: 0.4817)</p>
+<a href='feature_596/instance_7.png' target='_blank'>
+<img src='feature_596/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 829 (Activation: 0.4654)</p>
+<a href='feature_829/instance_7.png' target='_blank'>
+<img src='feature_829/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 376 (Activation: 0.4602)</p>
+<a href='feature_376/instance_7.png' target='_blank'>
+<img src='feature_376/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 787 (Activation: 0.4586)</p>
+<a href='feature_787/instance_7.png' target='_blank'>
+<img src='feature_787/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 76 (Activation: 0.4585)</p>
+<a href='feature_76/instance_7.png' target='_blank'>
+<img src='feature_76/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 443 (Activation: 0.4382)</p>
+<a href='feature_443/instance_7.png' target='_blank'>
+<img src='feature_443/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 836 (Activation: 0.4335)</p>
+<a href='feature_836/instance_7.png' target='_blank'>
+<img src='feature_836/instance_7.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 616 (Activation: 0.4295)</p>
+<a href='feature_616/instance_7.png' target='_blank'>
+<img src='feature_616/instance_7.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='instance-8' class='instance-content' style='display:none;'>
+<h2>Instance 8 Analysis</h2>
+<h3>Features Activation</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Feature 409 (Activation: 1.4993)</p>
+<a href='feature_409/instance_8.png' target='_blank'>
+<img src='feature_409/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 894 (Activation: 1.2698)</p>
+<a href='feature_894/instance_8.png' target='_blank'>
+<img src='feature_894/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 941 (Activation: 1.2527)</p>
+<a href='feature_941/instance_8.png' target='_blank'>
+<img src='feature_941/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 227 (Activation: 1.1502)</p>
+<a href='feature_227/instance_8.png' target='_blank'>
+<img src='feature_227/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 945 (Activation: 1.0569)</p>
+<a href='feature_945/instance_8.png' target='_blank'>
+<img src='feature_945/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 348 (Activation: 1.0244)</p>
+<a href='feature_348/instance_8.png' target='_blank'>
+<img src='feature_348/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 1022 (Activation: 1.0125)</p>
+<a href='feature_1022/instance_8.png' target='_blank'>
+<img src='feature_1022/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 762 (Activation: 0.9631)</p>
+<a href='feature_762/instance_8.png' target='_blank'>
+<img src='feature_762/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 239 (Activation: 0.9626)</p>
+<a href='feature_239/instance_8.png' target='_blank'>
+<img src='feature_239/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 951 (Activation: 0.9261)</p>
+<a href='feature_951/instance_8.png' target='_blank'>
+<img src='feature_951/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 874 (Activation: 0.9114)</p>
+<a href='feature_874/instance_8.png' target='_blank'>
+<img src='feature_874/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 898 (Activation: 0.8621)</p>
+<a href='feature_898/instance_8.png' target='_blank'>
+<img src='feature_898/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 764 (Activation: 0.8246)</p>
+<a href='feature_764/instance_8.png' target='_blank'>
+<img src='feature_764/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 374 (Activation: 0.8100)</p>
+<a href='feature_374/instance_8.png' target='_blank'>
+<img src='feature_374/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 50 (Activation: 0.7698)</p>
+<a href='feature_50/instance_8.png' target='_blank'>
+<img src='feature_50/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 82 (Activation: 0.7513)</p>
+<a href='feature_82/instance_8.png' target='_blank'>
+<img src='feature_82/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 948 (Activation: 0.7433)</p>
+<a href='feature_948/instance_8.png' target='_blank'>
+<img src='feature_948/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 978 (Activation: 0.7057)</p>
+<a href='feature_978/instance_8.png' target='_blank'>
+<img src='feature_978/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 323 (Activation: 0.6848)</p>
+<a href='feature_323/instance_8.png' target='_blank'>
+<img src='feature_323/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 310 (Activation: 0.6180)</p>
+<a href='feature_310/instance_8.png' target='_blank'>
+<img src='feature_310/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 63 (Activation: 0.6109)</p>
+<a href='feature_63/instance_8.png' target='_blank'>
+<img src='feature_63/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 770 (Activation: 0.6044)</p>
+<a href='feature_770/instance_8.png' target='_blank'>
+<img src='feature_770/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 272 (Activation: 0.6030)</p>
+<a href='feature_272/instance_8.png' target='_blank'>
+<img src='feature_272/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 555 (Activation: 0.5962)</p>
+<a href='feature_555/instance_8.png' target='_blank'>
+<img src='feature_555/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 710 (Activation: 0.5492)</p>
+<a href='feature_710/instance_8.png' target='_blank'>
+<img src='feature_710/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 287 (Activation: 0.5475)</p>
+<a href='feature_287/instance_8.png' target='_blank'>
+<img src='feature_287/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 243 (Activation: 0.5443)</p>
+<a href='feature_243/instance_8.png' target='_blank'>
+<img src='feature_243/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 329 (Activation: 0.5429)</p>
+<a href='feature_329/instance_8.png' target='_blank'>
+<img src='feature_329/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 689 (Activation: 0.5407)</p>
+<a href='feature_689/instance_8.png' target='_blank'>
+<img src='feature_689/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 730 (Activation: 0.5217)</p>
+<a href='feature_730/instance_8.png' target='_blank'>
+<img src='feature_730/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 501 (Activation: 0.4874)</p>
+<a href='feature_501/instance_8.png' target='_blank'>
+<img src='feature_501/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 787 (Activation: 0.4746)</p>
+<a href='feature_787/instance_8.png' target='_blank'>
+<img src='feature_787/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 76 (Activation: 0.4707)</p>
+<a href='feature_76/instance_8.png' target='_blank'>
+<img src='feature_76/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 596 (Activation: 0.4660)</p>
+<a href='feature_596/instance_8.png' target='_blank'>
+<img src='feature_596/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 829 (Activation: 0.4477)</p>
+<a href='feature_829/instance_8.png' target='_blank'>
+<img src='feature_829/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 210 (Activation: 0.4257)</p>
+<a href='feature_210/instance_8.png' target='_blank'>
+<img src='feature_210/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 836 (Activation: 0.4250)</p>
+<a href='feature_836/instance_8.png' target='_blank'>
+<img src='feature_836/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 616 (Activation: 0.4202)</p>
+<a href='feature_616/instance_8.png' target='_blank'>
+<img src='feature_616/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 443 (Activation: 0.4139)</p>
+<a href='feature_443/instance_8.png' target='_blank'>
+<img src='feature_443/instance_8.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 376 (Activation: 0.2980)</p>
+<a href='feature_376/instance_8.png' target='_blank'>
+<img src='feature_376/instance_8.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+<div id='instance-9' class='instance-content' style='display:none;'>
+<h2>Instance 9 Analysis</h2>
+<h3>Features Activation</h3>
+<div class='instance-grid'>
+<div class='instance'>
+<p>Feature 409 (Activation: 1.5584)</p>
+<a href='feature_409/instance_9.png' target='_blank'>
+<img src='feature_409/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 227 (Activation: 1.2237)</p>
+<a href='feature_227/instance_9.png' target='_blank'>
+<img src='feature_227/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 941 (Activation: 1.1873)</p>
+<a href='feature_941/instance_9.png' target='_blank'>
+<img src='feature_941/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 894 (Activation: 1.1170)</p>
+<a href='feature_894/instance_9.png' target='_blank'>
+<img src='feature_894/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 945 (Activation: 1.0788)</p>
+<a href='feature_945/instance_9.png' target='_blank'>
+<img src='feature_945/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 762 (Activation: 1.0016)</p>
+<a href='feature_762/instance_9.png' target='_blank'>
+<img src='feature_762/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 348 (Activation: 0.9997)</p>
+<a href='feature_348/instance_9.png' target='_blank'>
+<img src='feature_348/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 1022 (Activation: 0.9844)</p>
+<a href='feature_1022/instance_9.png' target='_blank'>
+<img src='feature_1022/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 239 (Activation: 0.9545)</p>
+<a href='feature_239/instance_9.png' target='_blank'>
+<img src='feature_239/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 764 (Activation: 0.9443)</p>
+<a href='feature_764/instance_9.png' target='_blank'>
+<img src='feature_764/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 374 (Activation: 0.9320)</p>
+<a href='feature_374/instance_9.png' target='_blank'>
+<img src='feature_374/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 951 (Activation: 0.8870)</p>
+<a href='feature_951/instance_9.png' target='_blank'>
+<img src='feature_951/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 874 (Activation: 0.8690)</p>
+<a href='feature_874/instance_9.png' target='_blank'>
+<img src='feature_874/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 898 (Activation: 0.8258)</p>
+<a href='feature_898/instance_9.png' target='_blank'>
+<img src='feature_898/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 323 (Activation: 0.7873)</p>
+<a href='feature_323/instance_9.png' target='_blank'>
+<img src='feature_323/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 82 (Activation: 0.7768)</p>
+<a href='feature_82/instance_9.png' target='_blank'>
+<img src='feature_82/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 50 (Activation: 0.7743)</p>
+<a href='feature_50/instance_9.png' target='_blank'>
+<img src='feature_50/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 978 (Activation: 0.7456)</p>
+<a href='feature_978/instance_9.png' target='_blank'>
+<img src='feature_978/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 948 (Activation: 0.7314)</p>
+<a href='feature_948/instance_9.png' target='_blank'>
+<img src='feature_948/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 272 (Activation: 0.6996)</p>
+<a href='feature_272/instance_9.png' target='_blank'>
+<img src='feature_272/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 730 (Activation: 0.6467)</p>
+<a href='feature_730/instance_9.png' target='_blank'>
+<img src='feature_730/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 555 (Activation: 0.6391)</p>
+<a href='feature_555/instance_9.png' target='_blank'>
+<img src='feature_555/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 770 (Activation: 0.6306)</p>
+<a href='feature_770/instance_9.png' target='_blank'>
+<img src='feature_770/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 710 (Activation: 0.6296)</p>
+<a href='feature_710/instance_9.png' target='_blank'>
+<img src='feature_710/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 287 (Activation: 0.6168)</p>
+<a href='feature_287/instance_9.png' target='_blank'>
+<img src='feature_287/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 210 (Activation: 0.5837)</p>
+<a href='feature_210/instance_9.png' target='_blank'>
+<img src='feature_210/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 63 (Activation: 0.5815)</p>
+<a href='feature_63/instance_9.png' target='_blank'>
+<img src='feature_63/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 329 (Activation: 0.5759)</p>
+<a href='feature_329/instance_9.png' target='_blank'>
+<img src='feature_329/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 689 (Activation: 0.5727)</p>
+<a href='feature_689/instance_9.png' target='_blank'>
+<img src='feature_689/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 76 (Activation: 0.5425)</p>
+<a href='feature_76/instance_9.png' target='_blank'>
+<img src='feature_76/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 310 (Activation: 0.5282)</p>
+<a href='feature_310/instance_9.png' target='_blank'>
+<img src='feature_310/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 596 (Activation: 0.5188)</p>
+<a href='feature_596/instance_9.png' target='_blank'>
+<img src='feature_596/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 243 (Activation: 0.5059)</p>
+<a href='feature_243/instance_9.png' target='_blank'>
+<img src='feature_243/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 501 (Activation: 0.4954)</p>
+<a href='feature_501/instance_9.png' target='_blank'>
+<img src='feature_501/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 787 (Activation: 0.4915)</p>
+<a href='feature_787/instance_9.png' target='_blank'>
+<img src='feature_787/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 829 (Activation: 0.4604)</p>
+<a href='feature_829/instance_9.png' target='_blank'>
+<img src='feature_829/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 616 (Activation: 0.4522)</p>
+<a href='feature_616/instance_9.png' target='_blank'>
+<img src='feature_616/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 376 (Activation: 0.4510)</p>
+<a href='feature_376/instance_9.png' target='_blank'>
+<img src='feature_376/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 836 (Activation: 0.4444)</p>
+<a href='feature_836/instance_9.png' target='_blank'>
+<img src='feature_836/instance_9.png' class='instance-img'>
+</a>
+</div>
+<div class='instance'>
+<p>Feature 443 (Activation: 0.4393)</p>
+<a href='feature_443/instance_9.png' target='_blank'>
+<img src='feature_443/instance_9.png' class='instance-img'>
+</a>
+</div>
+</div>
+</div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  switchView();
+  document.getElementById('view-selector').addEventListener('change', function() {
+    // Toggle visibility of the appropriate selector
+    if (this.value === 'feature') {
+      document.getElementById('feature-control').style.display = 'inline';
+      document.getElementById('instance-control').style.display = 'none';
+    } else {
+      document.getElementById('feature-control').style.display = 'none';
+      document.getElementById('instance-control').style.display = 'inline';
+    }
+  });
+});
+</script>
+</body></html>

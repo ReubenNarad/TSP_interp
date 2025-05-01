@@ -2,6 +2,50 @@
 # i.e. difference in activations between 2 similar-located nodes
 # Idea: run a logistic regression over the activations, then the loss represents
 
+# ================ TEMPORARY MONKEY PATCH - DELETE AFTER USING ================
+# This adds the missing min_coord_range attribute to the RandomUniform class
+import importlib
+
+def monkey_patch_random_uniform():
+    # Import distributions to patch
+    import sys
+    import os
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    import distributions
+    import torch
+    
+    # Store the original class
+    OriginalRandomUniform = distributions.RandomUniform
+    
+    # Create the patched class
+    class PatchedRandomUniform(OriginalRandomUniform):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            # Add the missing attribute with default values
+            if not hasattr(self, 'min_coord_range'):
+                self.min_coord_range = (0.0, 1.0)
+        
+        def sample(self, size):
+            device = next(self.parameters()).device if hasattr(self, 'parameters') else 'cpu'
+            try:
+                # Try the original implementation
+                return super().sample(size)
+            except AttributeError:
+                # Fall back to basic uniform sampling
+                print("Using patched RandomUniform.sample() method")
+                return torch.rand(*size if isinstance(size, tuple) else (size,), device=device)
+    
+    # Replace the original class with the patched one
+    distributions.RandomUniform = PatchedRandomUniform
+    
+    # Force reload modules that might have imported the original
+    importlib.reload(distributions)
+    print("✅ Monkey patch applied to RandomUniform class")
+
+# Apply the monkey patch
+monkey_patch_random_uniform()
+# ================ END OF MONKEY PATCH ================
+
 import os
 import sys
 import argparse
@@ -35,7 +79,8 @@ class FeatureAnalyzer:
         sae_path: str, 
         feature_indices: Optional[List[int]] = None,
         device: Optional[str] = None,
-        checkpoint_epoch: Optional[int] = None
+        checkpoint_epoch: Optional[int] = None,
+        html_only: bool = False  # Add html_only parameter
     ):
         """
         Initialize the feature analyzer.
@@ -46,11 +91,13 @@ class FeatureAnalyzer:
             feature_indices: List of feature indices to analyze (default: auto-select top-k)
             device: Device to run analysis on
             checkpoint_epoch: Specific model checkpoint epoch to use
+            html_only: If True, skip loading models (only load minimal data for HTML generation)
         """
         self.run_path = Path(run_path)
         self.sae_path = Path(sae_path)
         self.feature_indices = feature_indices
         self.checkpoint_epoch = checkpoint_epoch
+        self.html_only = html_only  # Store the html_only flag
         
         # Set device
         if device is None:
@@ -60,25 +107,35 @@ class FeatureAnalyzer:
         
         print(f"Using device: {self.device}")
         
-        # Load environment, TSP model, and SAE model
-        self.env = self._load_env()
-        self.config = self._load_config()
-        self.tsp_model = self._load_tsp_model()
-        self.sae_model = self._load_sae_model()
-        
-        # Create TSP visualizer
-        self.tsp_visualizer = TSPModelVisualizer(
-            run_path=self.run_path,
-            checkpoint_epoch=self.checkpoint_epoch,
-            device=self.device
-        )
-        
         # Create output directory for visualizations
         self.viz_dir = self.sae_path / "feature_analysis"
         os.makedirs(self.viz_dir, exist_ok=True)
         
         # Store instance-feature activations for indexing
         self.activation_index = {}
+        
+        # Only load the environment, model, and visualizer if not in html_only mode
+        if not html_only:
+            # Load environment, TSP model, and SAE model
+            self.env = self._load_env()
+            self.config = self._load_config()
+            self.tsp_model = self._load_tsp_model()
+            self.sae_model = self._load_sae_model()
+            
+            # Create TSP visualizer
+            self.tsp_visualizer = TSPModelVisualizer(
+                run_path=self.run_path,
+                checkpoint_epoch=self.checkpoint_epoch,
+                device=self.device
+            )
+        else:
+            print("HTML-only mode enabled. Skipping model loading.")
+            # Set placeholders to avoid attribute errors
+            self.env = None
+            self.config = None
+            self.tsp_model = None 
+            self.sae_model = None
+            self.tsp_visualizer = None
         
     def _load_env(self):
         """Load the environment from the run path"""
@@ -1125,7 +1182,8 @@ def main():
         sae_path=args.sae_path,
         feature_indices=args.features,
         device=args.device,
-        checkpoint_epoch=args.checkpoint_epoch
+        checkpoint_epoch=args.checkpoint_epoch,
+        html_only=args.html_only
     )
     
     analyzer.analyze_instances(
