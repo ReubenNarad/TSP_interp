@@ -4,32 +4,44 @@ import pickle
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader, TensorDataset, random_split
 import numpy as np
 import json
 import sys
 import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from policy.policy_hooked import HookedAttentionModelPolicy
 from policy.reinforce_clipped import REINFORCEClipped
 
 # Simplified train_probe, only for regression
-def train_regression_probe(probe_model, loader, loss_fn, optimizer, num_epochs, device, task_name="Regression", patience=50):
-    """Helper function to train a regression probe."""
-    losses = []
+def train_regression_probe(probe_model, train_loader, val_loader, loss_fn, optimizer, num_epochs, device, 
+                           y_mean, y_std, val_freq=50, task_name="Regression", patience=50, l1_lambda=0.0):
+    """Helper function to train a regression probe with periodic validation."""
+    train_losses = []
+    val_losses = []
     best_loss = float('inf')
     patience_counter = 0
+    val_metrics = []
     
-    print(f"Training for up to {num_epochs} epochs with patience={patience}...")
+    print(f"Training for up to {num_epochs} epochs with patience={patience}, validating every {val_freq} epochs...")
     
     for epoch in range(num_epochs):
+        # Training phase
         probe_model.train()
         epoch_losses = []
-        for xb, yb in loader:
+        for xb, yb in train_loader:
             xb, yb = xb.to(device), yb.to(device)
             pred = probe_model(xb).squeeze(-1) # Direct prediction
+            
+            # Calculate base loss
             loss = loss_fn(pred, yb)
+            
+            # Add L1 regularization if specified
+            if l1_lambda > 0:
+                l1_penalty = sum(p.abs().sum() for p in probe_model.parameters())
+                loss = loss + l1_lambda * l1_penalty
 
             optimizer.zero_grad()
             loss.backward()
@@ -37,14 +49,46 @@ def train_regression_probe(probe_model, loader, loss_fn, optimizer, num_epochs, 
             epoch_losses.append(loss.item())
 
         mean_loss = np.mean(epoch_losses)
-        losses.append(mean_loss)
-        log_str = f"Epoch {epoch+1}/{num_epochs} [{task_name}] - Loss (MSE): {mean_loss:.6f}"
-
-        # Print more frequently for longer training runs
-        if (epoch+1) % 25 == 0 or epoch == 0:
-            print(log_str)
+        train_losses.append(mean_loss)
+        
+        # Validation phase (less frequently)
+        if epoch % val_freq == 0 or epoch == num_epochs - 1:
+            probe_model.eval()
+            val_epoch_losses = []
+            with torch.no_grad():
+                for xb, yb in val_loader:
+                    xb, yb = xb.to(device), yb.to(device)
+                    pred = probe_model(xb).squeeze(-1)
+                    
+                    # Base loss only for validation (no regularization)
+                    loss = loss_fn(pred, yb)
+                    val_epoch_losses.append(loss.item())
             
-        # Early stopping check
+            val_mean_loss = np.mean(val_epoch_losses)
+            val_losses.append((epoch, val_mean_loss))  # Store epoch with loss value
+            
+            # Quick MSE calculation on unnormalized values for better interpretability
+            pred_unnorm = pred * y_std.to(device) + y_mean.to(device)
+            yb_unnorm = yb * y_std.to(device) + y_mean.to(device)
+            orig_mse = ((pred_unnorm - yb_unnorm) ** 2).mean().item()
+            
+            # Store validation metrics for this epoch
+            val_metrics.append({
+                'epoch': epoch,
+                'normalized_loss': val_mean_loss,
+                'original_mse': orig_mse
+            })
+            
+            # Include L1 info in log if used
+            l1_info = f", L1: {l1_lambda:.2e}" if l1_lambda > 0 else ""
+            log_str = f"Epoch {epoch+1}/{num_epochs} [{task_name}] - Train Loss: {mean_loss:.6f}, Val Loss: {val_mean_loss:.6f}, Val MSE (original): {orig_mse:.2f}{l1_info}"
+            print(log_str)
+        elif (epoch+1) % 25 == 0 or epoch == 0:
+            # Just print training loss on other epochs
+            l1_info = f", L1: {l1_lambda:.2e}" if l1_lambda > 0 else ""
+            print(f"Epoch {epoch+1}/{num_epochs} [{task_name}] - Train Loss: {mean_loss:.6f}{l1_info}")
+            
+        # Early stopping check (using training loss for consistency with original code)
         if mean_loss < best_loss:
             best_loss = mean_loss
             patience_counter = 0
@@ -53,11 +97,82 @@ def train_regression_probe(probe_model, loader, loss_fn, optimizer, num_epochs, 
             
         if patience_counter >= patience:
             print(f"Early stopping at epoch {epoch+1} as loss hasn't improved for {patience} epochs.")
-            print(f"Best loss: {best_loss:.6f}")
+            print(f"Best training loss: {best_loss:.6f}")
             break
 
-    results = {"losses": losses, "best_loss": best_loss}
+    results = {
+        "train_losses": train_losses, 
+        "val_losses": val_losses, 
+        "best_loss": best_loss,
+        "val_metrics": val_metrics,
+        "l1_lambda": l1_lambda  # Store L1 parameter in results
+    }
     return results
+
+def evaluate_probe(probe_model, X, y, y_mean, y_std, device, set_name="Test"):
+    """Evaluate probe on given data."""
+    probe_model.eval()
+    # Make sure y_mean and y_std are on the same device as y
+    y_mean_device = y_mean.to(device)
+    y_std_device = y_std.to(device)
+    with torch.no_grad():
+        # Get predictions
+        X_device = X.to(device)
+        y_device = y.to(device)
+        pred_normalized = probe_model(X_device).squeeze(-1)
+        # Denormalize predictions
+        pred_original = pred_normalized * y_std_device + y_mean_device
+        y_original = y_device * y_std_device + y_mean_device
+        
+        # Calculate metrics on original scale
+        mse_original = ((pred_original - y_original) ** 2).mean().item()
+        mae_original = (pred_original - y_original).abs().mean().item()
+        
+        # Calculate MAPE (Mean Absolute Percentage Error)
+        non_zero_mask = y_original != 0
+        mape = (((pred_original[non_zero_mask] - y_original[non_zero_mask]).abs() / y_original[non_zero_mask]) * 100).mean().item()
+        
+        # Calculate R-squared
+        y_mean_val = y_original.mean()
+        ss_total = ((y_original - y_mean_val) ** 2).sum().item()
+        ss_residual = ((y_original - pred_original) ** 2).sum().item()
+        r_squared = 1 - (ss_residual / ss_total)
+        
+        print(f"{set_name} Set Metrics:")
+        print(f"MSE: {mse_original:.2f}")
+        print(f"MAE: {mae_original:.2f}")
+        print(f"MAPE: {mape:.2f}%")
+        print(f"R-squared: {r_squared:.4f}")
+        
+        # Calculate percentage of predictions within X% of actual value
+        error_thresholds = [10, 20, 30, 50]
+        within_thresh_results = {}
+        for thresh in error_thresholds:
+            pct_errors = ((pred_original[non_zero_mask] - y_original[non_zero_mask]).abs() / y_original[non_zero_mask]) * 100
+            within_thresh = (pct_errors <= thresh).float().mean().item() * 100
+            within_thresh_results[str(thresh)] = within_thresh
+            print(f"Predictions within {thresh}% error: {within_thresh:.2f}%")
+        
+        # Print sample predictions if it's the test set
+        if set_name == "Test":
+            print("\nSample predictions (original scale):")
+            num_samples = min(10, len(X))
+            indices = torch.randperm(len(X_device))[:num_samples]
+            for i, idx in enumerate(indices):
+                actual = y_original[idx].item()
+                predicted = pred_original[idx].item()
+                error = abs(predicted - actual)
+                error_percent = 100 * error / actual if actual != 0 else float('inf')
+                print(f"Sample {i+1}: Actual={actual:.1f}, Predicted={predicted:.1f}, Error={error:.1f} ({error_percent:.1f}%)")
+    
+    results = {
+        "mse": mse_original,
+        "mae": mae_original,
+        "mape": mape,
+        "r_squared": r_squared,
+        "within_threshold": within_thresh_results
+    }
+    return results, pred_original.cpu(), y_original.cpu()
 
 def main(args):
     run_path = f"runs/{args.run_name}"
@@ -197,8 +312,45 @@ def main(args):
         # Reshape encoder output to [batch_size, num_nodes * embed_dim]
         # This preserves all node-level information
         X_all = encoder_out.reshape(num_instances, -1)
+        orig_feat_dim = X_all.shape[1]
+        print(f"Original feature dimension: {orig_feat_dim}")
+        
+        # Apply PCA dimensionality reduction if requested
+        if args.pca_components > 0:
+            print(f"Applying PCA to reduce dimensions from {orig_feat_dim} to {args.pca_components}...")
+            
+            # Move data to CPU for scikit-learn
+            X_cpu = X_all.cpu().numpy()
+            
+            # Fit PCA and transform the data
+            pca = PCA(n_components=args.pca_components)
+            X_reduced = pca.fit_transform(X_cpu)
+            
+            # Calculate explained variance
+            explained_var = np.sum(pca.explained_variance_ratio_) * 100
+            print(f"PCA retains {explained_var:.2f}% of the variance with {args.pca_components} components")
+            
+            # Convert back to tensor and move to the right device
+            X_all = torch.tensor(X_reduced, dtype=torch.float32).to(device)
+            
+            # Create a plot of explained variance
+            plt.figure(figsize=(10, 5))
+            plt.plot(np.cumsum(pca.explained_variance_ratio_) * 100)
+            plt.xlabel('Number of Components')
+            plt.ylabel('Cumulative Explained Variance (%)')
+            plt.title('PCA Explained Variance')
+            plt.grid(True, alpha=0.3)
+            plt.axhline(y=95, color='r', linestyle='--', label='95% Threshold')
+            plt.axvline(x=args.pca_components, color='g', linestyle='--', 
+                        label=f'Selected Components ({args.pca_components})')
+            plt.legend()
+            pca_plot_path = os.path.join(probe_dir, 'pca_explained_variance.png')
+            plt.savefig(pca_plot_path)
+            plt.close()
+            print(f"Saved PCA explained variance plot to {pca_plot_path}")
+            
         feat_dim = X_all.shape[1]
-        print(f"Flattened feature dimension: {feat_dim}")
+        print(f"Final feature dimension: {feat_dim}")
     print(f"Encoder forward pass complete. Features shape: {X_all.shape}")
 
     # --- Normalize target values before training ---
@@ -217,11 +369,28 @@ def main(args):
     with open(os.path.join(probe_dir, "normalization_stats.json"), "w") as f:
         json.dump(normalization_stats, f)
     
-    # --- Data Setup for Single Regression Probe ---
-    print(f"--- Setting up data for regression probe on all {num_instances} instances ---")
-    # Use normalized values for training
-    dataset = TensorDataset(X_all, y_normalized) # Use normalized y values
-    loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
+    # --- Create train/test split ---
+    print("\n--- Creating train/test split (80/20) ---")
+    # Create full dataset
+    full_dataset = TensorDataset(X_all.cpu(), y_normalized.cpu())
+    
+    # Calculate sizes for train/test split (80/20)
+    num_train = int(0.8 * len(full_dataset))
+    num_test = len(full_dataset) - num_train
+    
+    # Create the splits
+    train_dataset, test_dataset = random_split(
+        full_dataset, 
+        [num_train, num_test],
+        generator=torch.Generator().manual_seed(42)  # Set seed for reproducibility
+    )
+    
+    print(f"Split dataset into {num_train} training samples and {num_test} test samples")
+    
+    # Create dataloaders
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+    # Smaller batch size for test to get more detailed metrics
+    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
 
     # --- Train Single Regression Probe ---
     print(f"\n--- Training Regression Probe (Predicting LP Nonzeros) ---")
@@ -233,88 +402,101 @@ def main(args):
     optimizer_reg = optim.Adam(probe_reg.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     loss_fn_reg = nn.MSELoss() # Use MSE for regression
 
-    # Use the simplified training function
+    # Report regularization settings
+    reg_info = f"Using regularization: L2={args.weight_decay:.2e}"
+    if args.l1_lambda > 0:
+        reg_info += f", L1={args.l1_lambda:.2e}"
+    print(reg_info)
+
+    # Use the updated training function with train and test loaders for validation
     reg_log = train_regression_probe(
         probe_reg, 
-        loader, 
+        train_loader, 
+        test_loader,  # Use test set as validation set
         loss_fn_reg, 
         optimizer_reg, 
         args.num_epochs, 
-        device, 
+        device,
+        y_mean,
+        y_std,
+        val_freq=args.val_freq,  # Add validation frequency parameter
         task_name="Regression (LP Nonzeros)",
-        patience=args.patience
+        patience=args.patience,
+        l1_lambda=args.l1_lambda  # Pass L1 regularization parameter
     )
+    
+    # Plot training and validation losses
+    plt.figure(figsize=(12, 6))
+    plt.plot(range(len(reg_log["train_losses"])), reg_log["train_losses"], label='Training Loss')
+    val_epochs, val_losses = zip(*reg_log["val_losses"])
+    plt.plot(val_epochs, val_losses, 'o-', label='Validation Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss (MSE)')
+    plt.title('Training and Validation Loss')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    loss_plot_path = os.path.join(probe_dir, 'training_validation_loss.png')
+    plt.savefig(loss_plot_path)
+    plt.close()
+    print(f"Saved training/validation loss plot to {loss_plot_path}")
 
-    # Evaluate probe on training data
+    # --- Evaluate probe on both train and test data ---
     print("\n--- Evaluating probe on training data ---")
-    probe_reg.eval()
-    with torch.no_grad():
-        # Get predictions for all data
-        pred_normalized = probe_reg(X_all).squeeze(-1)
-        # Denormalize predictions
-        pred_original = pred_normalized * y_std + y_mean
-        
-        # Calculate MSE on original scale
-        mse_original = ((pred_original - y_all) ** 2).mean().item()
-        # Calculate MAE (Mean Absolute Error) 
-        mae_original = (pred_original - y_all).abs().mean().item()
-        # Calculate MAPE (Mean Absolute Percentage Error) - skip zero values to avoid division by zero
-        non_zero_mask = y_all != 0
-        mape = (((pred_original[non_zero_mask] - y_all[non_zero_mask]).abs() / y_all[non_zero_mask]) * 100).mean().item()
-        
-        # Calculate R-squared (coefficient of determination)
-        y_mean_val = y_all.mean()
-        ss_total = ((y_all - y_mean_val) ** 2).sum().item()
-        ss_residual = ((y_all - pred_original) ** 2).sum().item()
-        r_squared = 1 - (ss_residual / ss_total)
-        
-        print(f"Evaluation Metrics:")
-        print(f"MSE on original scale: {mse_original:.2f}")
-        print(f"MAE on original scale: {mae_original:.2f}")
-        print(f"MAPE: {mape:.2f}%")
-        print(f"R-squared: {r_squared:.4f}")
-        
-        # Calculate percentage of predictions within X% of actual value
-        error_thresholds = [10, 20, 30, 50]
-        for thresh in error_thresholds:
-            pct_errors = ((pred_original[non_zero_mask] - y_all[non_zero_mask]).abs() / y_all[non_zero_mask]) * 100
-            within_thresh = (pct_errors <= thresh).float().mean().item() * 100
-            print(f"Predictions within {thresh}% error: {within_thresh:.2f}%")
-        
-        # Print some sample predictions
-        print("\nSample predictions (original scale):")
-        num_samples = min(10, len(X_all))
-        indices = torch.randperm(len(X_all))[:num_samples]
-        for i, idx in enumerate(indices):
-            actual = y_all[idx].item()
-            predicted = pred_original[idx].item()
-            error = abs(predicted - actual)
-            error_percent = 100 * error / actual if actual != 0 else float('inf')
-            print(f"Sample {i+1}: Actual={actual:.1f}, Predicted={predicted:.1f}, Error={error:.1f} ({error_percent:.1f}%)")
-            
-        # Create and save a scatter plot of predictions vs actuals
-        plt.figure(figsize=(10, 8))
-        plt.scatter(y_all.cpu().numpy(), pred_original.cpu().numpy(), alpha=0.5)
-        
-        # Add a perfect prediction line
-        min_val = min(y_all.min().item(), pred_original.min().item())
-        max_val = max(y_all.max().item(), pred_original.max().item())
-        plt.plot([min_val, max_val], [min_val, max_val], 'r--')
-        
-        plt.xlabel('Actual LP Nonzeros')
-        plt.ylabel('Predicted LP Nonzeros')
-        plt.title('Predicted vs Actual LP Nonzeros')
-        plt.grid(True, alpha=0.3)
-        
-        # Add stats to the plot
-        plt.text(0.05, 0.95, f'R² = {r_squared:.4f}', transform=plt.gca().transAxes)
-        plt.text(0.05, 0.90, f'MAE = {mae_original:.2f}', transform=plt.gca().transAxes)
-        plt.text(0.05, 0.85, f'MAPE = {mape:.2f}%', transform=plt.gca().transAxes)
-        
-        scatter_path = os.path.join(probe_dir, 'prediction_scatter.png')
-        plt.savefig(scatter_path)
-        plt.close()
-        print(f"Saved prediction scatter plot to {scatter_path}")
+    # Extract X and y from train dataset
+    X_train = torch.stack([x for x, _ in [train_dataset[i] for i in range(len(train_dataset))]])
+    y_train = torch.stack([y for _, y in [train_dataset[i] for i in range(len(train_dataset))]])
+    
+    # Evaluate on training data
+    train_results, train_pred, train_actual = evaluate_probe(
+        probe_reg, X_train, y_train, y_mean, y_std, device, set_name="Training"
+    )
+    
+    print("\n--- Evaluating probe on test data ---")
+    # Extract X and y from test dataset
+    X_test = torch.stack([x for x, _ in [test_dataset[i] for i in range(len(test_dataset))]])
+    y_test = torch.stack([y for _, y in [test_dataset[i] for i in range(len(test_dataset))]])
+    
+    # Evaluate on test data
+    test_results, test_pred, test_actual = evaluate_probe(
+        probe_reg, X_test, y_test, y_mean, y_std, device, set_name="Test"
+    )
+    
+    # Create and save scatter plots for both train and test
+    plt.figure(figsize=(18, 8))
+    
+    # Training set plot
+    plt.subplot(1, 2, 1)
+    plt.scatter(train_actual.cpu().numpy(), train_pred.cpu().numpy(), alpha=0.5, color='blue')
+    min_val = min(train_actual.min().item(), train_pred.min().item())
+    max_val = max(train_actual.max().item(), train_pred.max().item())
+    plt.plot([min_val, max_val], [min_val, max_val], 'r--')
+    plt.xlabel('Actual LP Nonzeros')
+    plt.ylabel('Predicted LP Nonzeros')
+    plt.title('Training Set: Predicted vs Actual')
+    plt.grid(True, alpha=0.3)
+    plt.text(0.05, 0.95, f'R² = {train_results["r_squared"]:.4f}', transform=plt.gca().transAxes)
+    plt.text(0.05, 0.90, f'MAE = {train_results["mae"]:.2f}', transform=plt.gca().transAxes)
+    plt.text(0.05, 0.85, f'MAPE = {train_results["mape"]:.2f}%', transform=plt.gca().transAxes)
+    
+    # Test set plot
+    plt.subplot(1, 2, 2)
+    plt.scatter(test_actual.cpu().numpy(), test_pred.cpu().numpy(), alpha=0.5, color='green')
+    min_val = min(test_actual.min().item(), test_pred.min().item())
+    max_val = max(test_actual.max().item(), test_pred.max().item())
+    plt.plot([min_val, max_val], [min_val, max_val], 'r--')
+    plt.xlabel('Actual LP Nonzeros')
+    plt.ylabel('Predicted LP Nonzeros')
+    plt.title('Test Set: Predicted vs Actual')
+    plt.grid(True, alpha=0.3)
+    plt.text(0.05, 0.95, f'R² = {test_results["r_squared"]:.4f}', transform=plt.gca().transAxes)
+    plt.text(0.05, 0.90, f'MAE = {test_results["mae"]:.2f}', transform=plt.gca().transAxes)
+    plt.text(0.05, 0.85, f'MAPE = {test_results["mape"]:.2f}%', transform=plt.gca().transAxes)
+    
+    plt.tight_layout()
+    scatter_path = os.path.join(probe_dir, 'prediction_scatter_train_test.png')
+    plt.savefig(scatter_path)
+    plt.close()
+    print(f"Saved train/test prediction scatter plots to {scatter_path}")
 
     # --- Save Results ---
     print("--- Saving Results ---")
@@ -325,6 +507,11 @@ def main(args):
     model_save_path = os.path.join(probe_dir, model_name)
     print(f"Saving probe model state dict to {model_save_path}")
     torch.save(probe_reg.state_dict(), model_save_path)
+    
+    # Update training log to include both train and test results
+    reg_log["train_evaluation"] = train_results
+    reg_log["test_evaluation"] = test_results
+    
     log_save_path = os.path.join(probe_dir, log_name)
     print(f"Saving training log to {log_save_path}")
     with open(log_save_path, "w") as f:
@@ -340,8 +527,11 @@ if __name__ == "__main__":
     parser.add_argument("--epoch", type=int, required=True, help="Epoch of model checkpoint to use")
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--num_epochs", type=int, default=5000, help="Number of epochs for probe training (default: 5000)")
-    parser.add_argument("--lr", type=float, default=1e-6, help="Learning rate (default: 1e-6)")
+    parser.add_argument("--lr", type=float, default=1e-5, help="Learning rate (default: 1e-5)")
     parser.add_argument("--patience", type=int, default=50, help="Patience parameter for early stopping")
-    parser.add_argument("--weight_decay", type=float, default=1e-5, help="L2 regularization weight (default: 1e-5)")
+    parser.add_argument("--weight_decay", type=float, default=1e-3, help="L2 regularization weight (default: 1e-3)")
+    parser.add_argument("--l1_lambda", type=float, default=0.0, help="L1 regularization weight (default: 0.0)")
+    parser.add_argument("--val_freq", type=int, default=50, help="Frequency for validation (default: every 50 epochs)")
+    parser.add_argument("--pca_components", type=int, default=50, help="Number of PCA components (0 to disable)")
     args = parser.parse_args()
     main(args) 

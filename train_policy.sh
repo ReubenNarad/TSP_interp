@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # Train config
-num_epochs=1000
-num_instances=100_000
+num_epochs=50
+num_instances=10_000
 num_val=100
 num_loc=100
 batch_size=1024
 temperature=0.8
-lr=1e-2
+lr=1e-3
 checkpoint_freq=20
 dropout=0.1
 attention_dropout=0.1
@@ -26,7 +26,7 @@ embed_dim=512
 n_encoder_layers=6
 
 # Run name
-run_name="clip_tiny_lr_huge_embed_512_tight_clusters"
+run_name="simple_clusters"
 
 # Construct the checkpoint and reset_lr arguments
 if [ -n "$load_checkpoint" ]; then

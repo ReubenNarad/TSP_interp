@@ -124,16 +124,12 @@ def main(args):
     output_td = os.path.join(probe_dir, 'baseline_probe.pkl')
     os.makedirs(probe_dir, exist_ok=True)
 
-    # Load the environment to get the generator
     env_path = os.path.join(run_path, "env.pkl")
     with open(env_path, "rb") as f:
         env = pickle.load(f)
     print(f"Loaded environment from {env_path}")
 
-    # Generate new instances
     print(f"Generating {args.num_instances} new instances...")
-    # Use env.reset() which returns a TensorDict including 'locs'
-    # Make sure to generate on CPU as Concorde doesn't need GPU
     generated_td = env.reset(batch_size=[args.num_instances]).to('cpu')
     locs = generated_td["locs"] # Shape: [num_instances, num_loc, 2]
     batch_size = locs.shape[0]
@@ -152,13 +148,14 @@ def main(args):
     os.makedirs(scratch_folder, exist_ok=True)
 
     print(f"Solving {batch_size} generated instances with Concorde (tracking LP stats)...")
-    # Use tqdm for progress bar
     from tqdm import tqdm
-    for i in tqdm(range(batch_size)):
+    for i in tqdm(range(batch_size), desc="Solving Instances"):
         coords_i = locs[i] # Get coordinates for the i-th generated instance
         tsp_filename = os.path.join(scratch_folder, f"instance_{i}.tsp")
         sol_filename = os.path.join(scratch_folder, f"solution_{i}.sol")
+        
         write_tsplib_file(tsp_filename, coords_i)
+        
         bb_nodes, run_time, lp_rows, lp_cols, lp_nonzeros = run_concorde(tsp_filename, sol_filename)
 
         # Handle cases where Concorde might fail to produce a solution file
@@ -178,12 +175,14 @@ def main(args):
                  reward = torch.tensor(float('-inf')) # Placeholder
                  bb_nodes = -1 # Mark as failed
                  run_time = -1.0 # Mark as failed
+                 lp_rows, lp_cols, lp_nonzeros = -1, -1, -1 # Mark LP stats as failed too
         else:
             print(f"Warning: Solution file not found for instance {i}. Skipping.")
             route_t = torch.zeros(coords_i.shape[0], dtype=torch.long) # Placeholder
             reward = torch.tensor(float('-inf')) # Placeholder
             bb_nodes = -1 # Mark as failed
             run_time = -1.0 # Mark as failed
+            lp_rows, lp_cols, lp_nonzeros = -1, -1, -1 # Mark LP stats as failed too
 
 
         all_solutions.append(route_t)
@@ -194,6 +193,7 @@ def main(args):
         all_lp_cols.append(lp_cols)
         all_lp_nonzeros.append(lp_nonzeros)
 
+    print("\n[main] Aggregating results...")
     optimal_routes = torch.stack(all_solutions, dim=0)
     optimal_rewards = torch.stack(all_rewards, dim=0)
     optimal_bb_nodes = torch.tensor(all_bb_nodes, dtype=torch.long)
@@ -219,6 +219,7 @@ def main(args):
         print(f"Avg distance (solved): {avg_dist:.4f}, Avg B&B nodes: {avg_nodes}, Avg time: {avg_time:.4f}s")
         print(f"Avg LP stats - Rows: {avg_rows:.1f}, Cols: {avg_cols:.1f}, Nonzeros: {avg_nonzeros:.1f}")
 
+    print("[main] Preparing results dictionary...")
     results = {
         'locs': locs, # Save the generated locations!
         'actions': [optimal_routes],
@@ -230,6 +231,7 @@ def main(args):
         'lp_nonzeros': [optimal_lp_nonzeros]
     }
 
+    print(f"[main] Saving results to {output_td}...")
     with open(output_td, 'wb') as f:
         pickle.dump(results, f)
     print(f"Saved results for {batch_size} generated instances (including locs) to {output_td}")
@@ -237,6 +239,6 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate TSP instances, solve with Concorde, and record metrics.")
     parser.add_argument("--run_name", type=str, required=True)
-    parser.add_argument("--num_instances", type=int, default=1000, help="Number of instances to generate and solve")
+    parser.add_argument("--num_instances", type=int, default=5000, help="Number of instances to generate and solve")
     args = parser.parse_args()
     main(args)

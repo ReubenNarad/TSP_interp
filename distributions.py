@@ -326,6 +326,76 @@ class Clusters:
         # Removed the clamping to allow points outside [0,1]
         return coords
 
+class SimpleClusters:
+    """
+    A faster version of Clusters that samples from axis-aligned Gaussians.
+    Each cluster has a random mean and random x/y standard deviations,
+    but no rotation. Generates new clusters for each sample() call.
+    Allows points to extend beyond the [0,1] range.
+    """
+    def __init__(self, min_clusters=8, max_clusters=15, std_dev_range=(0.01, 0.05)):
+        super().__init__()
+        self.min_clusters = min_clusters
+        self.max_clusters = max_clusters
+        # Use a range for standard deviation directly
+        self.std_dev_min = std_dev_range[0]
+        self.std_dev_max = std_dev_range[1]
+
+    def sample(self, size):
+        batch_size, num_loc, _ = size
+        
+        # Get device from the input size if it's a tensor
+        device = size.device if torch.is_tensor(size) else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        
+        # Create empty tensor for coordinates
+        coords = torch.zeros(batch_size, num_loc, 2, device=device)
+        
+        # For each batch, create new clusters
+        for i in range(batch_size):
+            # Generate new clusters for this batch
+            n_clusters = torch.randint(self.min_clusters, self.max_clusters + 1, (1,)).item()
+            cluster_params = []
+            
+            for _ in range(n_clusters):
+                # Define the cluster's mean (center)
+                mean = 0.05 + 0.90 * torch.rand(2, device=device) # Slightly reduced range
+                
+                # Sample standard deviations directly for x and y
+                std_x = torch.empty(1, device=device).uniform_(self.std_dev_min, self.std_dev_max)
+                std_y = torch.empty(1, device=device).uniform_(self.std_dev_min, self.std_dev_max)
+                
+                cluster_params.append((mean, std_x, std_y))
+            
+            # Calculate how many points to sample from each cluster
+            points_per_cluster = torch.full((n_clusters,), num_loc // n_clusters, dtype=torch.long, device=device)
+            # Distribute remaining points
+            remainder = num_loc % n_clusters
+            if remainder > 0:
+                points_per_cluster[:remainder] += 1
+            
+            point_idx = 0
+            # Sample from each cluster
+            for c, (mean, std_x, std_y) in enumerate(cluster_params):
+                n_points = points_per_cluster[c].item()
+                
+                # Generate samples from axis-aligned normal distribution
+                # Sample standard normal variables
+                z = torch.randn(n_points, 2, device=device)
+                
+                # Scale and shift: x = μ + σ*z
+                samples = torch.zeros_like(z)
+                samples[:, 0] = mean[0] + std_x * z[:, 0]
+                samples[:, 1] = mean[1] + std_y * z[:, 1]
+                
+                coords[i, point_idx:point_idx + n_points] = samples
+                point_idx += n_points
+            
+            # Shuffle the points for this batch
+            idx = torch.randperm(num_loc, device=device)
+            coords[i] = coords[i][idx]
+        
+        return coords
+
 class HybridSampler:
     """
     A hybrid sampler that draws from multiple distributions with equal or specified probabilities.
