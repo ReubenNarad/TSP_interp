@@ -54,6 +54,7 @@ function updateInstanceView() {
   <select id='view-selector' onchange='switchView()'>
     <option value='feature'>Per Feature</option>
     <option value='instance'>Per Instance</option>
+    <option value='about'>About</option>
   </select>
   <span id='feature-control'>
     <label for='feature-selector'>Select Feature: </label>
@@ -3821,6 +3822,12 @@ function updateInstanceView() {
 <img src='feature_443/instance_3.png' class='instance-img'>
 </a>
 </div>
+<div class='instance'>
+<p>Feature 710 (Activation: 0.4015)</p>
+<a href='feature_710/instance_3.png' target='_blank'>
+<img src='feature_710/instance_3.png' class='instance-img'>
+</a>
+</div>
 </div>
 </div>
 <div id='instance-4' class='instance-content' style='display:none;'>
@@ -5300,6 +5307,41 @@ function updateInstanceView() {
 </div>
 </div>
 </div>
+<div id='about-view' class='view-container' style='display:none;'>
+  <div class='container'>
+    <h2>About SAE Feature Analysis</h2>
+    <div style='max-width: 800px; margin: 0 auto; line-height: 1.6;'>
+      <h3>Overview</h3>
+      <p>This is a comprehensive analysis tool for Sparse Autoencoder (SAE) features. The tool provides detailed visualizations and insights into feature activations and their corresponding instances.</p>
+      
+      <h3>What are SAEs?</h3>
+      <p>Sparse Autoencoders are neural network architectures designed to learn efficient representations of data by enforcing sparsity constraints. They are particularly useful for understanding the internal representations learned by larger neural networks.</p>
+      
+      <h3>Features</h3>
+      <ul>
+        <li><strong>Per Feature View:</strong> Explore individual features and their top activating instances</li>
+        <li><strong>Per Instance View:</strong> Examine specific instances and see which features they activate</li>
+        <li><strong>Interactive Visualization:</strong> Click on images to view them in full resolution</li>
+        <li><strong>Activation Analysis:</strong> View activation strengths and patterns across different features</li>
+      </ul>
+      
+      <h3>Current Analysis</h3>
+      <p><strong>Run:</strong> Hybrid_3_1e-5</p>
+      <p><strong>SAE Model:</strong> sae_l10.001_ef4.0_k0.1_03-21_17:41:07</p>
+      <p>This analysis includes data from multiple features with varying activation strengths, providing insights into the learned representations and their interpretability.</p>
+      
+      <h3>How to Use</h3>
+      <p>Use the dropdown menu above to switch between different views:</p>
+      <ul>
+        <li>Select "Per Feature" to explore individual features and their most activating instances</li>
+        <li>Select "Per Instance" to examine specific instances and see which features they activate most strongly</li>
+        <li>Click on any image to view it in full resolution in a new tab</li>
+      </ul>
+      
+      <p><em>This is placeholder content that will be expanded with a full article about the methodology, results, and implications of this SAE analysis.</em></p>
+    </div>
+  </div>
+</div>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   switchView();
@@ -5308,9 +5350,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (this.value === 'feature') {
       document.getElementById('feature-control').style.display = 'inline';
       document.getElementById('instance-control').style.display = 'none';
-    } else {
+    } else if (this.value === 'instance') {
       document.getElementById('feature-control').style.display = 'none';
       document.getElementById('instance-control').style.display = 'inline';
+    } else if (this.value === 'about') {
+      document.getElementById('feature-control').style.display = 'none';
+      document.getElementById('instance-control').style.display = 'none';
     }
   });
 });

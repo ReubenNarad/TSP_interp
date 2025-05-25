@@ -49,13 +49,17 @@ class RandomUniform:
              # Default device if batch_size_arg is int or list
              device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+        # Default ranges if attributes don't exist (for backward compatibility)
+        min_coord_range = getattr(self, 'min_coord_range', (0.0, 0.5))
+        max_coord_range = getattr(self, 'max_coord_range', (0.5, 1.0))
+
         # Sample bottom-left corners (min_x, min_y) from [0, 0.5] x [0, 0.5]
         # Shape: [batch_size, 2]
-        min_coords = torch.rand(current_batch_size, 2, device=device) * (self.min_coord_range[1] - self.min_coord_range[0]) + self.min_coord_range[0]
+        min_coords = torch.rand(current_batch_size, 2, device=device) * (min_coord_range[1] - min_coord_range[0]) + min_coord_range[0]
 
         # Sample top-right corners (max_x, max_y) from [0.5, 1] x [0.5, 1]
         # Shape: [batch_size, 2]
-        max_coords = torch.rand(current_batch_size, 2, device=device) * (self.max_coord_range[1] - self.max_coord_range[0]) + self.max_coord_range[0]
+        max_coords = torch.rand(current_batch_size, 2, device=device) * (max_coord_range[1] - max_coord_range[0]) + max_coord_range[0]
 
         # Expand dims for broadcasting with num_loc
         # Shape: [batch_size, 1, 2]
