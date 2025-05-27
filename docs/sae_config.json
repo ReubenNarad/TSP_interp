@@ -1,0 +1,21 @@
+{
+  "run_dir": "../runs/Hybrid_3_1e-5",
+  "epoch": null,
+  "activation_key": "encoder_output",
+  "normalize": false,
+  "expansion_factor": 4.0,
+  "k_ratio": 0.1,
+  "tied_weights": false,
+  "init_method": "uniform",
+  "batch_size": 64,
+  "num_epochs": 30,
+  "lr": 0.001,
+  "weight_decay": 0.0,
+  "l1_coef": 0.001,
+  "bias_decay": 1e-05,
+  "clip_grad_norm": 1.0,
+  "reinit_dead": true,
+  "reinit_freq": 2,
+  "save_freq": 5,
+  "num_workers": 4
+}

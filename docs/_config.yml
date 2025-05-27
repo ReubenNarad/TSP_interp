@@ -1,0 +1,23 @@
+title: TSP Solver Mechanistic Interpretability
+description: Sparse Autoencoder Feature Analysis for Traveling Salesman Problem
+baseurl: ""
+url: ""
+
+# Build settings
+markdown: kramdown
+highlighter: rouge
+theme: minima
+
+# Plugins
+plugins:
+  - jekyll-feed
+
+# Collections
+collections:
+  features:
+    output: false
+
+# Exclude files
+exclude:
+  - index.html
+  - activation_index.json 

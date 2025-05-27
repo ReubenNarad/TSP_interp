@@ -1,0 +1,54 @@
+<div class="feature-viewer">
+    {% for feature in site.data.features.features %}
+    <div id="feature-{{ feature.id }}" class="feature-display" {% unless forloop.first %}style="display: none;"{% endunless %}>
+        <div class="feature-info">
+            {% if forloop.first %}
+            <select id="feature-select" class="feature-title-select">
+                {% for f in site.data.features.features %}
+                <option value="{{ f.id }}" {% if f.id == feature.id %}selected{% endif %}>Feature {{ f.id }}</option>
+                {% endfor %}
+            </select>
+            {% else %}
+            <select class="feature-title-select" disabled>
+                <option>Feature {{ feature.id }}</option>
+            </select>
+            {% endif %}
+            <p><strong>Average Activation:</strong> {{ feature.activation }}</p>
+        </div>
+        
+        <div class="feature-overlay-container">
+            <img src="feature_overlays/feature_{{ feature.id }}_overlay.png" 
+                 alt="Feature {{ feature.id }} Overlay" 
+                 class="feature-overlay"
+                 onclick="openImage('feature_overlays/feature_{{ feature.id }}_overlay.png')">
+        </div>
+        
+        <h3>Top Activating Instances</h3>
+        <div class="instances-grid">
+            {% for instance in feature.instances limit:5 %}
+            <div class="instance-card">
+                <img src="feature_{{ feature.id }}/instance_{{ instance.id }}.png" 
+                     alt="Instance {{ instance.id }}"
+                     onclick="openImage('feature_{{ feature.id }}/instance_{{ instance.id }}.png')">
+                <p>Instance {{ instance.id }}<br>
+                   Activation: {{ instance.activation | round: 4 }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <h3>Bottom Activating Instances</h3>
+        <div class="instances-grid">
+            {% assign bottom_instances = feature.instances | slice: -5, 5 | reverse %}
+            {% for instance in bottom_instances %}
+            <div class="instance-card">
+                <img src="feature_{{ feature.id }}/instance_{{ instance.id }}.png" 
+                     alt="Instance {{ instance.id }}"
+                     onclick="openImage('feature_{{ feature.id }}/instance_{{ instance.id }}.png')">
+                <p>Instance {{ instance.id }}<br>
+                   Activation: {{ instance.activation | round: 4 }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div> 
