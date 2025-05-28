@@ -18,7 +18,7 @@ from policy.reinforce_clipped import REINFORCEClipped
 
 def main(args):
     # Define the location distribution
-    sampler = Clusters(min_clusters=3, max_clusters=7)
+    sampler = Uniform()
 
     generator = TSPGenerator(num_loc=args.num_loc, loc_sampler=sampler)
     env = TSPEnv(generator=generator)

@@ -67,6 +67,7 @@
         .section-nav a {
             color: #6f42c1;
             text-decoration: none;
+            font-size: 1.2rem;
         }
         
         .section-nav a:hover {
@@ -75,7 +76,13 @@
 
         .h3 {
             font-size: 2.3rem;
-            color: #000000;
+            color: #7b7b7b;
+            margin-bottom: 1.5rem;
+        }
+
+        .h4 {
+            font-size: 1.5rem;
+            color: hsl(0, 0%, 46%);
             margin-bottom: 1.5rem;
         }
     </style>
@@ -144,80 +151,41 @@
                             <div>
                                 <div class="section-nav">
                                     <a href="#architecture">Architecture</a> | 
-                                    <a href="#training-params">Training Parameters</a> | 
                                     <a href="#data">Data</a> | 
-                                    <a href="#training-results">Results</a>
+                                    <a href="#training-method">Training Method</a>
                                 </div>
                                 
-                                <h4 id="architecture">Architecture</h4>
+                                <h4 id="architecture" class="section-content-header">Architecture</h4>
                                 <div style='text-align: center; margin: 2rem 0;'>
                                     <img src='architecture.png' alt='SAE Feature Analysis Architecture' style='width: 80%; max-width: none; height: auto; border: 0px solid #ddd; border-radius: 8px; margin-left: -5%;'>
                                     <p style='font-style: italic; margin-top: 0.5rem;'>System architecture showing the flow from TSP instances through the policy network to SAE feature extraction and analysis.</p>
-                                    <p>We use (RL4CO)'s implementation of (Kool et al.)'s Transformer Pointer Network, which performs next-node prediction to autoregressively construct TSP solutions. We focus on TSP instances with a fixed size of 100 nodes.</p>
                                 </div>
                                 
-                                <h4 id="training-params">Training Parameters</h4>
-                                <table style="margin: 1rem 0; border-collapse: collapse; width: 100%;">
-                                    <caption style="font-weight: bold; margin-bottom: 0.5rem;">Training Parameters</caption>
-                                    <thead>
-                                        <tr style="background-color: #f3f0ff;">
-                                            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Parameter</th>
-                                            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Value</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td style="border: 1px solid #ddd; padding: 8px;">lr</td>
-                                            <td style="border: 1px solid #ddd; padding: 8px;">1e-05</td>
-                                        </tr>
-                                        <tr style="background-color: #faf9ff;">
-                                            <td style="border: 1px solid #ddd; padding: 8px;">num_epochs</td>
-                                            <td style="border: 1px solid #ddd; padding: 8px;">1000</td>
-                                        </tr>
-                                        <tr>
-                                            <td style="border: 1px solid #ddd; padding: 8px;">num_instances</td>
-                                            <td style="border: 1px solid #ddd; padding: 8px;">100000</td>
-                                        </tr>
-                                        <tr style="background-color: #faf9ff;">
-                                            <td style="border: 1px solid #ddd; padding: 8px;">num_val</td>
-                                            <td style="border: 1px solid #ddd; padding: 8px;">100</td>
-                                        </tr>
-                                        <tr>
-                                            <td style="border: 1px solid #ddd; padding: 8px;">num_loc</td>
-                                            <td style="border: 1px solid #ddd; padding: 8px;">100</td>
-                                        </tr>
-                                        <tr style="background-color: #faf9ff;">
-                                            <td style="border: 1px solid #ddd; padding: 8px;">temperature</td>
-                                            <td style="border: 1px solid #ddd; padding: 8px;">1.0</td>
-                                        </tr>
-                                        <tr>
-                                            <td style="border: 1px solid #ddd; padding: 8px;">embed_dim</td>
-                                            <td style="border: 1px solid #ddd; padding: 8px;">256</td>
-                                        </tr>
-                                        <tr style="background-color: #faf9ff;">
-                                            <td style="border: 1px solid #ddd; padding: 8px;">n_encoder_layers</td>
-                                            <td style="border: 1px solid #ddd; padding: 8px;">5</td>
-                                        </tr>
-                                        <tr>
-                                            <td style="border: 1px solid #ddd; padding: 8px;">checkpoint_freq</td>
-                                            <td style="border: 1px solid #ddd; padding: 8px;">20</td>
-                                        </tr>
-                                        <tr style="background-color: #faf9ff;">
-                                            <td style="border: 1px solid #ddd; padding: 8px;">dropout</td>
-                                            <td style="border: 1px solid #ddd; padding: 8px;">0.1</td>
-                                        </tr>
-                                        <tr>
-                                            <td style="border: 1px solid #ddd; padding: 8px;">attention_dropout</td>
-                                            <td style="border: 1px solid #ddd; padding: 8px;">0.0</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                                <p>We use (RL4CO)'s implementation of (Kool et al.)'s Transformer Pointer Network, which performs next-node prediction to autoregressively construct TSP solutions. We focus on TSP instances with a fixed size of 100 nodes.</p>
 
-                                <h4 id="data">Data</h4>
-                                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+                                <h4 id="data" class="section-content-header">Data</h4>
+                                <p>
+                                Our TSP policy is trained on instances drawn from a configurable distribution. As a default, nodes are drawn uniformly over the unit square, but we also run experiments with more structured distributions, such as clustered Gaussians, concentric shapes (for example, points on a circle), latitude-longitude pairs from real road-network waypoints, and other custom generators. For consistency, the model is only evaluated on instance drawn from the same distribution as the training data.
+                                </p>
+                                
+                                <div style="display: flex; gap: 1rem; justify-content: center; margin: 2rem 0; width: 100%;">
+                                    <img src="" alt="Data Distribution Example 1" style="width: calc(33.33% - 0.67rem); aspect-ratio: 1; border: 1px solid #ddd; border-radius: 8px; object-fit: cover;">
+                                    <img src="" alt="Data Distribution Example 2" style="width: calc(33.33% - 0.67rem); aspect-ratio: 1; border: 1px solid #ddd; border-radius: 8px; object-fit: cover;">
+                                    <img src="" alt="Data Distribution Example 3" style="width: calc(33.33% - 0.67rem); aspect-ratio: 1; border: 1px solid #ddd; border-radius: 8px; object-fit: cover;">
+                                </div>
+                                
+                                <p>
+                                During training, we resample the instances every epoch. For most settings, we used 100,000 instances per epoch for 300 epochs, or 30M unique instances. Alongside the training instances, we freeze a separate validation environment that resamples the same instances at each validation step. We also solve those validation tours optimally with the Concorde solver, so that we can record our model's performance in terms of suboptimality throughout training.
+                                </p>
 
-                                <h4 id="training-results">Training Results</h4>
-                                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+                                
+                                <h4 id="training-method" class="section-content-header">Training Method</h4>
+                                <p>Due to the nature of the TSP, generating optimal solutions at scale for supervised learning is computationally intractable. Instead, we train our solver using reinforcement learning, following the work of (Joshi) allowing the model to learn directly from interaction with the environment rather than relying on supervised labels. Training is conducted using the REINFORCE algorithm with gradient clipping to ensure stable parameter updates. Specifically, we use the RL4CO library's PyTorch Lightning-based training framework, including their TSP environment implementation. The reward signal is the negative tour length, incentivizing the model to find shorter tours. Each training run begins with a warm-up phase consisting of 1,000 greedy rollouts, which helps initialize the baseline and stabilize early policy learning. Afterwards, node selection during rollouts is sampled from a temperature-controlled softmax distribution. Once REINFORCE produces gradeints, we update parameters with the Adam optimizer.</p>
+
+                                <div style='text-align: center; margin: 2rem 0;'>
+                                    <img src='animation_demo.gif' alt='Training Results Animation Demo' style='width: 80%; max-width: none; height: auto; border: 1px solid #ddd; border-radius: 8px;'>
+                                    <p style='font-style: italic; margin-top: 0.5rem;'>Animation demonstrating the training progress and results.</p>
+                                </div>
                             </div>
                         </div>
                         
@@ -225,13 +193,13 @@
                         <div id="sparse-autoencoder">
                             <h3>Sparse Autoencoder</h3>
                             <div>
-                                <h4 id="sae-background">SAE Background</h4>
+                                <h4 id="sae-background" class="section-content-header">SAE Background</h4>
                                 <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
 
-                                <h4 id="sae-training">SAE Training Details</h4>
+                                <h4 id="sae-training" class="section-content-header">SAE Training Details</h4>
                                 <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
 
-                                <h4>Current Analysis</h4>
+                                <h4 class="section-content-header">Current Analysis</h4>
                                 <p><strong>Run:</strong> Hybrid_3_1e-5</p>
                                 <p><strong>SAE Model:</strong> sae_l10.001_ef4.0_k0.1_03-21_17:41:07</p>
                                 <p>This analysis includes data from multiple features with varying activation strengths, providing insights into the learned representations and their interpretability.</p>
@@ -242,7 +210,7 @@
                         <div id="feature-analysis">
                             <h3>Feature Analysis</h3>
                             <div>
-                                <h4>Features</h4>
+                                <h4 class="section-content-header">Features</h4>
                                 <ul>
                                     <li><strong>Per Feature View:</strong> Explore individual features and their top activating instances</li>
                                     <li><strong>Per Instance View:</strong> Examine specific instances and see which features they activate</li>
@@ -250,16 +218,16 @@
                                     <li><strong>Activation Analysis:</strong> View activation strengths and patterns across different features</li>
                                 </ul>
                                 
-                                <h4 id="feature-analysis-methodology">Feature Analysis</h4>
+                                <h4 id="feature-analysis-methodology" class="section-content-header">Feature Analysis</h4>
                                 <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
 
-                                <h4 id="feature-visualization">Feature Visualization</h4>
+                                <h4 id="feature-visualization" class="section-content-header">Feature Visualization</h4>
                                 <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
 
-                                <h4 id="discussion">Discussion</h4>
+                                <h4 id="discussion" class="section-content-header">Discussion</h4>
                                 <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
 
-                                <h4>How to Use</h4>
+                                <h4 class="section-content-header">How to Use</h4>
                                 <p>Use the dropdown menu above to switch between different views:</p>
                                 <ul>
                                     <li>Select "Per Feature" to explore individual features and their most activating instances</li>

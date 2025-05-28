@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Train config
-num_epochs=50
-num_instances=10_000
+num_epochs=300
+num_instances=100_000
 num_val=100
 num_loc=100
 batch_size=1024
@@ -26,7 +26,7 @@ embed_dim=512
 n_encoder_layers=6
 
 # Run name
-run_name="simple_clusters"
+run_name="uniform_display"
 
 # Construct the checkpoint and reset_lr arguments
 if [ -n "$load_checkpoint" ]; then

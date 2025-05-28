@@ -11,8 +11,8 @@ from sklearn.decomposition import PCA
 import imageio
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from policy_hooked import HookedAttentionModelPolicy
-from reinforce_clipped import REINFORCEClipped
+from policy.policy_hooked import HookedAttentionModelPolicy
+from policy.reinforce_clipped import REINFORCEClipped
 
 def main(run_path: str, fps: float, batch_size: int = 4, num_instances: int = 5):
     # Convert fps to duration (seconds per frame)

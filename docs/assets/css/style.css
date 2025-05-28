@@ -195,7 +195,7 @@ main {
 
 .about-content h3 {
     color: #141414;
-    margin: 2rem 0 1rem -35px;
+    margin: 2rem 0 1rem 0;
 }
 
 .about-content ul {
@@ -255,14 +255,20 @@ footer {
 }
 
 /* Subsection headers */
-.section-content h4 {
-    font-size: 1.6rem;
+.section-content h4,
+.section-content-header {
+    font-size: 1.5rem;
     color: #555;
     margin: 2.5rem 0 1.2rem;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid #e9ecef;
-    font-weight: 600;
+    font-weight: 400;
     letter-spacing: -0.02em;
+}
+
+/* Override any default h4 colors */
+h4 {
+    color: #555 !important;
 }
 
 /* Regular text in sections */
