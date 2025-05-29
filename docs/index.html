@@ -5,6 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SAE Feature Analysis</title>
     <link rel="stylesheet" href="assets/css/style.css">
+    
+    <!-- MathJax for LaTeX math rendering -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['\\(', '\\)']],
+                displayMath: [['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            }
+        };
+    </script>
+    
     <style>
         /* Feature info 2x2 grid styling */
         .feature-info {
@@ -85,6 +105,11 @@
             color: hsl(0, 0%, 46%);
             margin-bottom: 1.5rem;
         }
+        
+        /* Remove thin lines from subsubsections */
+        .section-content-header {
+            border-bottom: none !important;
+        }
     </style>
 </head>
 <body>
@@ -147,7 +172,7 @@
                         
                         <!-- TSP Solver Section -->
                         <div id="tsp-solver">
-                            <h3>TSP Solver</h3>
+                            <h2>TSP Solver</h2>
                             <div>
                                 <div class="section-nav">
                                     <a href="#architecture">Architecture</a> | 
@@ -156,8 +181,8 @@
                                 </div>
                                 
                                 <h4 id="architecture" class="section-content-header">Architecture</h4>
-                                <div style='text-align: center; margin: 2rem 0;'>
-                                    <img src='architecture.png' alt='SAE Feature Analysis Architecture' style='width: 80%; max-width: none; height: auto; border: 0px solid #ddd; border-radius: 8px; margin-left: -5%;'>
+                                <div style='width: 120%; margin-left: -10%; text-align: center; margin-top: 2rem; margin-bottom: 2rem;'>
+                                    <img src='architecture.png' alt='SAE Feature Analysis Architecture' style='width: 90%; max-width: none; height: auto; border: 0px solid #ddd; border-radius: 8px;'>
                                     <p style='font-style: italic; margin-top: 0.5rem;'>System architecture showing the flow from TSP instances through the policy network to SAE feature extraction and analysis.</p>
                                 </div>
                                 
@@ -168,10 +193,10 @@
                                 Our TSP policy is trained on instances drawn from a configurable distribution. As a default, nodes are drawn uniformly over the unit square, but we also run experiments with more structured distributions, such as clustered Gaussians, concentric shapes (for example, points on a circle), latitude-longitude pairs from real road-network waypoints, and other custom generators. For consistency, the model is only evaluated on instance drawn from the same distribution as the training data.
                                 </p>
                                 
-                                <div style="display: flex; gap: 1rem; justify-content: center; margin: 2rem 0; width: 100%;">
-                                    <img src="" alt="Data Distribution Example 1" style="width: calc(33.33% - 0.67rem); aspect-ratio: 1; border: 1px solid #ddd; border-radius: 8px; object-fit: cover;">
-                                    <img src="" alt="Data Distribution Example 2" style="width: calc(33.33% - 0.67rem); aspect-ratio: 1; border: 1px solid #ddd; border-radius: 8px; object-fit: cover;">
-                                    <img src="" alt="Data Distribution Example 3" style="width: calc(33.33% - 0.67rem); aspect-ratio: 1; border: 1px solid #ddd; border-radius: 8px; object-fit: cover;">
+                                <div style="width: 120%; margin-left: -10%; display: flex; gap: 1rem; justify-content: center; margin-top: 2rem; margin-bottom: 2rem;">
+                                    <img src="uniform_distribution.png" alt="Data Distribution Example 1" style="width: calc(33.33% - 0.67rem); aspect-ratio: 1; border: 1px solid #ddd; border-radius: 8px; object-fit: cover;">
+                                    <img src="clusters_distribution.png" alt="Data Distribution Example 2" style="width: calc(33.33% - 0.67rem); aspect-ratio: 1; border: 1px solid #ddd; border-radius: 8px; object-fit: cover;">
+                                    <img src="fuzzy_circle_distribution.png" alt="Data Distribution Example 3" style="width: calc(33.33% - 0.67rem); aspect-ratio: 1; border: 1px solid #ddd; border-radius: 8px; object-fit: cover;">
                                 </div>
                                 
                                 <p>
@@ -184,50 +209,76 @@
 
                                 <div style='text-align: center; margin: 2rem 0;'>
                                     <img src='animation_demo.gif' alt='Training Results Animation Demo' style='width: 80%; max-width: none; height: auto; border: 1px solid #ddd; border-radius: 8px;'>
-                                    <p style='font-style: italic; margin-top: 0.5rem;'>Animation demonstrating the training progress and results.</p>
+                                    <p style='font-style: italic; margin-top: 0.5rem;'>As the model trains, the solution to a fixed instance noticeably straightens out.</p>
                                 </div>
                             </div>
                         </div>
                         
                         <!-- Sparse Autoencoder Section -->
                         <div id="sparse-autoencoder">
-                            <h3>Sparse Autoencoder</h3>
+                            <h2>Sparse Autoencoder</h2>
                             <div>
+                                <div class="section-nav">
+                                    <a href="#interp-goal">Interpretability Goal</a> | 
+                                    <a href="#sae-background">SAE Background</a> | 
+                                    <a href="#sae-training">SAE Training Details</a>
+                                </div>
+                                
+                                <h4 id="interp-goal" class="section-content-header">Interpretability Goal</h4>
+                                <p>Understanding what the neural TSP solver has learned requires dissecting its latent space in a human-interpretable way.  We adopt the language of *A Mathematical Framework for Transformer Circuits* framework (Elhage et al., 2021). In this view, "features" are important directions in the model's latent space that behave like variables: each has a value (its activation) on every forward pass. "Circuits," on the other hand, are relationships between these features that behave like functions. We focus on finding "features." If we can reliably name such variables ("this node is on the convex hull" or "that node is this node's nearest neighbor," for exaple), we build a mechanistic narrative of *why* the policy selects one next node over another.</p>
+                                
                                 <h4 id="sae-background" class="section-content-header">SAE Background</h4>
-                                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+                                <p>A common obstacle in interpreting neural networks is *polysemanticity,* a phenomenon where individual neurons encode multiple, almost orthogonal concepts (Olsson et al., 2022). In language models, for example, this would look like a neuron that fires for both French negations and HTML tags, confounding interpretation. A popular tool for "disentangling" the neurons is the Sparse Autoencoder (SAE), a secondary ML model trained on the activations of the model being interpreted. SAE's learn an *over-complete* and *sparse* representation of the activations.</p>
+                                <div style='text-align: center; margin: 2rem 0;'>
+                                    <img src='dictionary.png' alt='Figure demonstrating dictionary learning' style='width: 80%; max-width: none; height: auto; border: 0px solid #ddd; border-radius: 8px;'>
+                                    <p style='font-style: italic; margin-top: 0.5rem;'>Given the data in n = 2 dimensions (left), learn an overcomplete (d > n), sparse (|{active}| < n) basis to represent the data.</p>
+                                </div>
+                                <p>The SAE architecture has 3 compponents: an encoder, an activation function, and a decoder. Its training objective, as an autoencoder, is to reconstruct the input after passing it through its encoder's latent space. As a compression task, autoencoders typically have a smaller-dimensional latent space than the input. The key difference with <em>Sparse Autoencoders</em> is that the latent space is higher-dimensional, with the additional sparsity constraint:</p>
+                                <img src="sae_demo.png" alt="SAE Architecture" style="width: 100%; max-width: none; height: auto; border: 0px solid #ddd; border-radius: 8px;">
+                                <p>
+                                    Because of the sparsity constraint, the discovered features are less likely to be polysemantic, and more interpretable to humans. SAEs have been used to find colors/texture features in vision models (cite), features related to specific concepts (https://transformer-circuits.pub/2024/scaling-monosemanticity/) in LLMs, protein motifs in DNA foundation models (https://www.goodfire.ai/blog/interpreting-evo-2), and anomaly detection in robots (https://arxiv.org/html/2504.11170v2) among others. To our knowledge, our work is the first to apply the same tool to neural OR solvers.
+                                </p>
 
                                 <h4 id="sae-training" class="section-content-header">SAE Training Details</h4>
-                                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+                                <p>Recall that the model works by first embedding the graph, then autoregressively decoding the solution. To capture the richest version of the graph's embedding, we attach the SAE to the encoder output, at the residual stream. Our SAE follows OpenAI's top-k SAE recipe (Gao et al., 2024). At each forward pass we zero all but a token's top-activating 10 % of SAE neurons, giving us an effective L0 constraint while still enjoying gradient flow through the soft top-k mask. The key hyperparameters are:</p>
+                                <ul>
+                                    <li><em>expansion factor</em>: how many times larger is the SAE's embedding space than the residual stream?</li>
+                                    <li><em>k ratio</em>: k-sparsity of the SAE features (0.1 → 10% of features active)</li>
+                                    <li><em>l1 coefficient</em>: Strength of the l1 sparsity penalty applied to the SAE activations</li>
+                                    </li>
+                                </ul>
 
-                                <h4 class="section-content-header">Current Analysis</h4>
-                                <p><strong>Run:</strong> Hybrid_3_1e-5</p>
-                                <p><strong>SAE Model:</strong> sae_l10.001_ef4.0_k0.1_03-21_17:41:07</p>
-                                <p>This analysis includes data from multiple features with varying activation strengths, providing insights into the learned representations and their interpretability.</p>
+                                <p>We collect the SAE's training data by running inference on the TSP model for 100,000 instances, collecting the graph embedding for each one. Crucially, these instances were drawn from the same distribution as the TSP solver's training data. After hyperparameter tuning, the resulting dictionary reconstructs residual activations to near-perfectly, with increasing sparsity as training progressed. </p>
+                                <br>
                             </div>
                         </div>
                         
                         <!-- Feature Analysis Section -->
                         <div id="feature-analysis">
-                            <h3>Feature Analysis</h3>
+                            <h2>Feature Analysis</h2>
                             <div>
-                                <h4 class="section-content-header">Features</h4>
-                                <ul>
-                                    <li><strong>Per Feature View:</strong> Explore individual features and their top activating instances</li>
-                                    <li><strong>Per Instance View:</strong> Examine specific instances and see which features they activate</li>
-                                    <li><strong>Interactive Visualization:</strong> Click on images to view them in full resolution</li>
-                                    <li><strong>Activation Analysis:</strong> View activation strengths and patterns across different features</li>
-                                </ul>
+                                <div class="section-nav">
+                                    <a href="#feature-analysis-methodology">Feature Activation Mechanics</a> | 
+                                    <a href="#feature-visualization">Visualising a Feature</a> | 
+                                    <a href="#discussion">Discussion</a> | 
+                                    <a href="#how-to-use">How to Use</a>
+                                </div>
                                 
-                                <h4 id="feature-analysis-methodology" class="section-content-header">Feature Analysis</h4>
-                                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+                                <h4 id="feature-analysis-methodology" class="section-content-header">Feature Activation Mechanics</h4>
+                                <p> After identifying a set of feature directions, we would like to measure how relevant each feature is to a given input. To do this, we calculate "feature activations." Recall that the residual stream we tap has shape \([\,d,\,\text{seq_len}\,]\): every column is a length-\(d\) embedding for one node in the graph, so each SAE feature is a vector in \(\mathbb{R}^{d}\) that is evaluated per node. Concretely, for a node embedding \(x\in\mathbb{R}^{d}\) the encoder first projects the node embedding vector to the SAE's embedding space:</p>
+                                \[z \;=\; xW^{\top}+b,\]
+                                <p>where the columns of \(W^{\top}\) are the learned feature directions and \(b\) is a bias. Then, the top-\(k\) sparsification follows: for each node we keep only the \(k\) largest entries of \(z\), setting the rest to zero with</p>
+                                \[z_{\text{sparse}} \;=\; \text{ReLU}\!\bigl(z-\tau\bigr), \qquad \tau = \text{the } k\text{-th largest value in } z.\]
+                                <p>The result is a vector in which at most \(k\) features fire for that node, yielding a genuinely sparse, competition-based notion of "activation." In our visualisations the activation of feature \(i\) for a TSP instance is the collection \(\{\,z_{\text{sparse}}[j,i]\}_{j=1}^{N}\) across all \(N\) nodes, often summarised by its mean</p>
+                                \[\mu_i \;=\; \tfrac{1}{N}\sum_{j=1}^{N} z_{\text{sparse}}[j,i].\]
 
-                                <h4 id="feature-visualization" class="section-content-header">Feature Visualization</h4>
-                                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+                                <h4 id="feature-visualization" class="section-content-header">Visualising a Feature</h4>
+                                <p>To see what a feature is doing we overlay ten fresh 100-node instances from the same distribution in a single \(x\)-\(y\) plot. Each point's colour encodes the corresponding value of \(z_{\text{sparse}}[j,i]\) (dark = 0, bright = high activation), while marker shape distinguishes which of the ten instances the node belongs to. Because activations are node-wise, this composite heat-map lets us spot geometric or combinatorial regularities at a glance—e.g. gradients that track tour direction, clusters of high-activation nodes near dense regions, or symmetry patterns that correlate with particular edge layouts.</p>
 
                                 <h4 id="discussion" class="section-content-header">Discussion</h4>
                                 <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
 
-                                <h4 class="section-content-header">How to Use</h4>
+                                <h4 id="how-to-use" class="section-content-header">How to Use</h4>
                                 <p>Use the dropdown menu above to switch between different views:</p>
                                 <ul>
                                     <li>Select "Per Feature" to explore individual features and their most activating instances</li>

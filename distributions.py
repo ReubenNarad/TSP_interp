@@ -467,24 +467,23 @@ if __name__ == "__main__":
     sns.set_theme(style="whitegrid")
 
     # Initialize the sampler
-    sampler = Clusters(min_clusters=10, max_clusters=15)
+    # sampler = Uniform(num_loc=100)
+    # sampler = Clusters(min_clusters=10, max_clusters=15)
+    sampler = FuzzyCircle()
 
-    # Sample a batch of 3 instances
-    coords = sampler.sample([3, 100, 2])  # 3 instances, 100 points per instance, 2D
+    # Sample a batch of 1 instance
+    coords = sampler.sample([1, 100, 2])  # 1 instance, 100 points per instance, 2D
 
-    # Create a figure with subplots for each batch (3 plots)
-    fig, axes = plt.subplots(1, 3, figsize=(15, 4))
-    axes = axes.flatten()
+    # Create a single plot
+    fig, ax = plt.subplots(1, 1, figsize=(8, 8))
 
-    # Plot each batch
-    for i in range(3):
-        coords_np = coords[i].cpu().numpy()
-        axes[i].scatter(coords_np[:, 0], coords_np[:, 1], alpha=0.5, s=2)
-        # Set fixed plot limits from -0.5 to 1.5
-        axes[i].set_xlim(-0.2, 1.2)
-        axes[i].set_ylim(-0.2, 1.2)
-        axes[i].set_title(f"Batch {i+1}")
+    # Plot the single instance
+    coords_np = coords[0].cpu().numpy()
+    ax.scatter(coords_np[:, 0], coords_np[:, 1], alpha=.7, s=50, color="#6f42c1")
+    # Set fixed plot limits from -0.2 to 1.2
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
 
     plt.tight_layout()
-    plt.savefig("clusters_distribution.png")
-    plt.show()
+    plt.savefig("fuzzy_circle_distribution.png")
+

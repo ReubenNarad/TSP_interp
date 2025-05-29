@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Train config
-num_epochs=300
+num_epochs=100
 num_instances=100_000
 num_val=100
 num_loc=100
@@ -55,7 +55,7 @@ python -m policy.train_vanilla \
     --attention_dropout $attention_dropout \
     --clip_val $clip_val \
     --lr_decay $lr_decay \
-    # --min_lr $min_lr \
+    --min_lr $min_lr \
     $checkpoint_arg
 
 python -m env.solve_td_with_concorde --run_name $run_name
