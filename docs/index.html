@@ -128,7 +128,7 @@
                                 Interpretability for Neural TSP Solvers
                             </h1>
                             <p style="text-align: center; font-size: 1.2rem; color: #666; margin-bottom: 3rem; max-width: 800px; margin-left: auto; margin-right: auto;">
-                                Investigating the latent space of a neural TSP solver using sparse autoencoders and linear probes.
+                                Investigating the latent space of a neural TSP solver using sparse autoencoders.
                             </p>
                             
                             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; margin-top: 3rem;">
@@ -194,10 +194,20 @@
                                 </p>
                                 
                                 <div style="width: 120%; margin-left: -10%; display: flex; gap: 1rem; justify-content: center; margin-top: 2rem; margin-bottom: 2rem;">
-                                    <img src="uniform_distribution.png" alt="Data Distribution Example 1" style="width: calc(33.33% - 0.67rem); aspect-ratio: 1; border: 1px solid #ddd; border-radius: 8px; object-fit: cover;">
-                                    <img src="clusters_distribution.png" alt="Data Distribution Example 2" style="width: calc(33.33% - 0.67rem); aspect-ratio: 1; border: 1px solid #ddd; border-radius: 8px; object-fit: cover;">
-                                    <img src="fuzzy_circle_distribution.png" alt="Data Distribution Example 3" style="width: calc(33.33% - 0.67rem); aspect-ratio: 1; border: 1px solid #ddd; border-radius: 8px; object-fit: cover;">
+                                    <div style="width: calc(33.33% - 0.67rem); text-align: center;">
+                                        <img src="uniform_distribution.png" alt="Data Distribution Example 1" style="width: 100%; aspect-ratio: 1; border: 1px solid #ddd; border-radius: 8px; object-fit: cover;">
+                                        <p style="margin-top: 0.5rem; font-style: italic; color: #666;">Uniform</p>
+                                    </div>
+                                    <div style="width: calc(33.33% - 0.67rem); text-align: center;">
+                                        <img src="clusters_distribution.png" alt="Data Distribution Example 2" style="width: 100%; aspect-ratio: 1; border: 1px solid #ddd; border-radius: 8px; object-fit: cover;">
+                                        <p style="margin-top: 0.5rem; font-style: italic; color: #666;">Clusters</p>
+                                    </div>
+                                    <div style="width: calc(33.33% - 0.67rem); text-align: center;">
+                                        <img src="fuzzy_circle_distribution.png" alt="Data Distribution Example 3" style="width: 100%; aspect-ratio: 1; border: 1px solid #ddd; border-radius: 8px; object-fit: cover;">
+                                        <p style="margin-top: 0.5rem; font-style: italic; color: #666;">Ring</p>
+                                    </div>
                                 </div>
+                                <p style="text-align: center; font-style: italic; margin-top: -1rem; margin-bottom: 2rem; color: #555;">Example TSP instances drawn from different distributions</p>
                                 
                                 <p>
                                 During training, we resample the instances every epoch. For most settings, we used 100,000 instances per epoch for 300 epochs, or 30M unique instances. Alongside the training instances, we freeze a separate validation environment that resamples the same instances at each validation step. We also solve those validation tours optimally with the Concorde solver, so that we can record our model's performance in terms of suboptimality throughout training.
@@ -432,7 +442,7 @@
 
     <footer>
         <div class="container">
-            <p>&copy; 2024 TSP Solver Mechanistic Interpretability</p>
+            <p>&copy; 2025 Reuben Narad</p>
         </div>
     </footer>
 

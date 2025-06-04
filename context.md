@@ -24,23 +24,49 @@ The repository is organized into several key directories:
 ### 3. Sparse Autoencoder (`sae/`)
 - **collect_activations.py**: Extracts policy network activations for SAE training
 - **train_topk.py**: Implements top-k sparse autoencoder training
-- **feature_analysis.py**: Analyzes and visualizes learned SAE features
+- **feature_analysis.py**: Analyzes and visualizes learned SAE features with extensive visualization capabilities
 - **regression_test.py**: Tests relationships between features and problem attributes
 - **activations_gif.py**: Creates visualizations of activations over time
+- **utils.py**: Utility functions for activation analysis and visualization
+- **model/**: Contains SAE model implementations
 
 ### 4. Probes (`probe/`)
 - **train_probe.py**: Trains linear probes to understand what information is encoded in network layers
 - **concorde_for_probe.py**: Concorde solver integration for probe training
 
-### 5. Scripts
+### 5. Documentation and Web Interface (`docs/`)
+- **index.html**: Interactive web documentation with feature exploration interface
+- **assets/**: CSS and JavaScript files for the web interface
+- **feature_overlays/**: Generated overlay visualizations for features
+- **demo_overlays/**: Curated example feature visualizations
+- **activation_index.json**: Index of feature activations for the interactive interface
+- **generate_features_data.py**: Script to generate data for the web interface
+- Various PNG and GIF files for documentation and demonstrations
+
+### 6. Distribution Classes (`distributions.py`)
+A comprehensive module containing multiple TSP instance distribution classes:
+- **Uniform**: Standard uniform distribution in unit square
+- **RandomUniform**: Uniform within randomly sampled rectangles  
+- **DualUniform**: 50/50 split between two uniform distributions
+- **NRandomUniform**: Random number of elongated uniform clusters
+- **FuzzyCircle**: Circular patterns with normally distributed radial noise
+- **Clusters**: Gaussian cluster-based distributions
+- **SimpleClusters**: Simplified clustering with configurable parameters
+- **HybridSampler**: Combines multiple distributions with specified probabilities
+
+### 7. Experiments (`experiments/`)
+- **cluster_feature/**: Contains experimental analysis of cluster-based features with interactive HTML viewers
+
+### 8. Scripts
 - **train_policy.sh**: Script to train the neural policy model
 - **collect_activations.sh**: Script to extract activations from the policy 
 - **train_sae.sh**: Script to train the sparse autoencoder
 - **analyze_features.sh**: Script to analyze and visualize SAE features
 
-### 6. Visualization
+### 9. Visualization and Results
 - **readme_images/**: Contains visualizations for the README
-- Various PNG files: Feature visualization outputs
+- Various feature visualization PNG files and analysis results
+- **runs/**: Training run outputs and checkpoints
 
 ## Workflow
 
@@ -122,6 +148,41 @@ Key parameters:
 
 The probe training process helps to understand what information is encoded in the policy's neural representations by training linear models to predict properties of TSP instances.
 
+## Interactive Web Documentation
+
+The project includes a comprehensive web interface (`docs/index.html`) that provides:
+
+- **Interactive Feature Explorer**: Browse and visualize SAE features with a dropdown interface
+- **Feature Activation Overlays**: Multi-instance visualizations showing how features respond to different TSP instances
+- **Mathematical Documentation**: Detailed explanations of the SAE architecture and forward pass
+- **Feature Analysis Results**: Categorized examples of discovered feature types (edge detectors, cluster focusers, linear separators, etc.)
+- **Responsive Design**: Modern web interface with proper styling and navigation
+
+The web interface can be served locally or deployed for easy sharing of results and demonstrations.
+
+## Advanced Visualization Capabilities
+
+The `sae/feature_analysis.py` module provides extensive visualization capabilities:
+
+- **Feature Overlay Visualizations**: Show how features activate across multiple TSP instances simultaneously
+- **Per-Instance Analysis**: Detailed feature activation maps for individual instances
+- **Solution Path Overlays**: Optional TSP solution path visualization alongside feature activations
+- **Interactive HTML Generation**: Automatic generation of browsable HTML interfaces for results
+- **Activation Statistics**: Tools for analyzing feature activation patterns and statistics
+- **Batch Processing**: Efficient analysis of large numbers of instances and features
+
+## Distribution Flexibility
+
+The `distributions.py` module provides extensive flexibility for training and testing on different types of TSP instances:
+
+- **Uniform Distributions**: Standard and parameterized uniform sampling
+- **Cluster-Based**: Various clustering approaches with configurable parameters
+- **Geometric Patterns**: Circular and other geometric distributions
+- **Hybrid Approaches**: Combine multiple distributions with specified probabilities
+- **Random Parameterization**: Distributions with randomly sampled parameters per instance
+
+This allows for comprehensive testing of how the neural solver generalizes across different problem structures.
+
 ## Dependencies
 
 The project relies on:
@@ -146,9 +207,11 @@ The complete list of Python dependencies can be found in `requirements.txt`.
 
 3. **Sparse Autoencoder**: A top-k SAE extracts sparse features from the dense neural representations of the policy.
 
-4. **Feature Analysis**: Visualization tools show how features activate for different TSP instance properties.
+4. **Feature Analysis**: Comprehensive visualization tools show how features activate for different TSP instance properties, including overlay visualizations across multiple instances.
 
-5. **Probes**: Linear models trained to predict properties of TSP instances from neural representations.
+5. **Interactive Documentation**: Web-based interface for exploring and understanding discovered features.
+
+6. **Distribution Variety**: Extensive collection of TSP instance distributions for training and evaluation.
 
 ## Research Goals
 
@@ -157,5 +220,17 @@ The repository supports ongoing research exploring:
 - What features are most important for solving TSP efficiently
 - How different layers of the policy network build upon each other
 - The relationship between learned features and problem difficulty
+- Interpretability techniques for combinatorial optimization
 
 The ultimate goal is to bridge the gap between neural and symbolic approaches to combinatorial optimization by making neural solutions more interpretable and extracting useful heuristics.
+
+## Web Interface and Demo
+
+The project includes a sophisticated web interface that allows for:
+- Interactive exploration of discovered SAE features
+- Real-time visualization of feature activations
+- Comprehensive documentation with mathematical explanations
+- Demonstration of different feature types and their behaviors
+- Easy sharing and presentation of research results
+
+This makes the research accessible to both technical and non-technical audiences, facilitating better understanding and communication of the interpretability findings.

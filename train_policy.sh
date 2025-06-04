@@ -1,32 +1,32 @@
 #!/bin/bash
 
 # Train config
-num_epochs=100
+num_epochs=250
 num_instances=100_000
 num_val=100
 num_loc=100
 batch_size=1024
 temperature=0.8
-lr=1e-3
+lr=1e-4
 checkpoint_freq=20
 dropout=0.1
 attention_dropout=0.1
-clip_val=0.001
+clip_val=0.01
 
 # Learning rate decay configuration
-lr_decay="linear"  # Options: "none", "cosine", "linear"
-min_lr=1e-6        # Minimum learning rate at end of training
+lr_decay="none"  # Options: "none", "cosine", "linear"
+# min_lr=1e-6        # Minimum learning rate at end of training
 
 # Load from checkpoint (set to empty string to start from scratch)
 load_checkpoint=""
 # reset_lr=true
 
 # Model config
-embed_dim=512
-n_encoder_layers=6
+embed_dim=256
+n_encoder_layers=4
 
 # Run name
-run_name="uniform_display"
+run_name="uniform_for_ablation"
 
 # Construct the checkpoint and reset_lr arguments
 if [ -n "$load_checkpoint" ]; then
@@ -55,7 +55,7 @@ python -m policy.train_vanilla \
     --attention_dropout $attention_dropout \
     --clip_val $clip_val \
     --lr_decay $lr_decay \
-    --min_lr $min_lr \
+    # --min_lr $min_lr \
     $checkpoint_arg
 
 python -m env.solve_td_with_concorde --run_name $run_name
