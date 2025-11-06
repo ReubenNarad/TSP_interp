@@ -9,6 +9,14 @@ import torch
 import numpy as np
 from tqdm import tqdm
 
+# Ensure torch.load defaults to weights_only=False for trusted legacy checkpoints
+os.environ.setdefault("TORCH_LOAD_WEIGHTS_ONLY", "0")
+_original_torch_load = torch.load
+def _torch_load_with_weights(*args, **kwargs):
+    kwargs.setdefault("weights_only", False)
+    return _original_torch_load(*args, **kwargs)
+torch.load = _torch_load_with_weights
+
 # Fix imports from parent directory
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -96,8 +104,6 @@ def collect_activations(args):
         instances_to_use = default_activation_instances
     
     print(f"Generating {instances_to_use} instances for activation collection...")
-    data = env.reset(batch_size=[instances_to_use]).to(device)
-    # Note: We're no longer using val_td, but generating fresh instances for more diversity
     
     # Get all checkpoints
     checkpoint_dir = os.path.join(run_path, "checkpoints")
@@ -169,69 +175,67 @@ def collect_activations(args):
         # Get policy from loaded model
         policy = model.policy.to(device)
         
-        # Run the forward pass
-        with torch.no_grad():
-            # Run the forward pass
-            output = policy(data, decode_type="greedy")
+        accumulated = {}
+        total_instances = 0
+        chunk_size = args.chunk_size if hasattr(args, "chunk_size") and args.chunk_size else instances_to_use
+        remaining = instances_to_use
+        num_nodes = None
+        
+        while remaining > 0:
+            current = min(chunk_size, remaining)
+            data = env.reset(batch_size=[current]).to(device)
+            if num_nodes is None:
+                num_nodes = data['locs'].shape[1]
             
-        # Collect activations from the policy
-        activations = {}
-        for name, activation in policy.activation_cache.items():
-            if activation is not None:
-                # If this is a per-node activation, flatten to (batch_size*num_nodes, features)
+            with torch.no_grad():
+                _ = policy(data, decode_type="greedy")
+            
+            for name, activation in policy.activation_cache.items():
+                if activation is None:
+                    continue
+                
+                def _flatten_and_store(tensor, key):
+                    if len(tensor.shape) != 3:
+                        print(f"Warning: Activation {key} has shape {tensor.shape}, expected 3D tensor. Skipping.")
+                        return
+                    flat = tensor.reshape(-1, tensor.shape[-1]).cpu()
+                    accumulated.setdefault(key, []).append(flat)
+                
                 if name.startswith('encoder_layer_') or name == 'encoder_output' or name == 'decoder_input':
-                    # Handle the case where activation might be a tuple
                     if isinstance(activation, tuple):
-                        print(f"Processing tuple for {name} - using node embeddings (first tensor)")
-                        
-                        # Store both parts separately for analysis
                         if len(activation) == 2:
-                            # Check shape of first tensor to ensure it's 3D
                             first_tensor = activation[0]
-                            if len(first_tensor.shape) == 3:
-                                batch_size, num_nodes, feat_dim = first_tensor.shape
-                                flat_activation = first_tensor.reshape(-1, feat_dim).cpu()
-                                activations[name] = flat_activation
-                            else:
-                                print(f"Warning: Unexpected shape {first_tensor.shape} for {name}, skipping")
-                                
-                            # Optionally store attention weights
-                            if args.store_attention_weights and len(activation[1].shape) == 3:
-                                second_tensor = activation[1]
-                                batch_size, num_nodes, feat_dim = second_tensor.shape
-                                flat_attn_weights = second_tensor.reshape(-1, feat_dim).cpu()
-                                activations[f"{name}_attn_weights"] = flat_attn_weights
+                            _flatten_and_store(first_tensor, name)
+                            if args.store_attention_weights:
+                                _flatten_and_store(activation[1], f"{name}_attn_weights")
                         else:
                             print(f"Warning: Unexpected tuple length {len(activation)} for {name}")
                     else:
-                        # Regular tensor processing - check shape first
-                        if len(activation.shape) == 3:
-                            batch_size, num_nodes, feat_dim = activation.shape
-                            flat_activation = activation.reshape(-1, feat_dim).cpu()
-                            activations[name] = flat_activation
-                        else:
-                            print(f"Warning: Activation {name} has shape {activation.shape}, expected 3D tensor. Skipping.")
-        # Save activations with run name
-        run_name = os.path.basename(os.path.normpath(run_path))
+                        _flatten_and_store(activation, name)
+            
+            total_instances += current
+            remaining -= current
+            torch.cuda.empty_cache()
+        
+        activations = {name: torch.cat(chunks, dim=0) for name, chunks in accumulated.items()}
+        
         activation_path = os.path.join(activations_dir, f"activations_epoch_{epoch}.pt")
         torch.save(activations, activation_path)
         print(f"Saved activations to {activation_path}")
         
-        # Also save a metadata file describing the activation dimensions
         metadata = {
             'epoch': epoch,
             'shapes': {name: tensor.shape for name, tensor in activations.items()},
             'model_config': config,
-            'num_instances': instances_to_use,
-            'num_nodes': data['locs'].shape[1],
+            'num_instances': total_instances,
+            'num_nodes': num_nodes if num_nodes is not None else 0,
         }
         
         metadata_path = os.path.join(activations_dir, f"metadata_epoch_{epoch}.json")
         with open(metadata_path, 'w') as f:
             json.dump(metadata, f, indent=2)
         
-        # Free up memory
-        del activations, model, policy
+        del activations, accumulated, model, policy
         torch.cuda.empty_cache()
     
     print(f"Activations saved to {activations_dir}")
@@ -272,6 +276,12 @@ if __name__ == "__main__":
         "--silence_warnings",
         action="store_true",
         help="Silence warnings about keys not in model state dict"
+    )
+    parser.add_argument(
+        "--chunk_size",
+        type=int,
+        default=None,
+        help="Number of instances to process per forward pass (reduces GPU memory usage). Defaults to all instances."
     )
     
     args = parser.parse_args()

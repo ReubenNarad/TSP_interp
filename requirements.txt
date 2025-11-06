@@ -7,4 +7,6 @@ imageio
 scipy
 tqdm
 lightning
-scikit-learn 
+scikit-learn
+wandb
+python-dotenv

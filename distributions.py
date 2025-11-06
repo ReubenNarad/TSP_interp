@@ -2,6 +2,7 @@ from torch import tensor, zeros, randperm, rand, cos, sin
 import torch
 from torch.distributions import Uniform
 import math
+import warnings
 
 class Uniform:
     """Samples TSP instances with node coordinates uniformly distributed from (0,0) to (1,1)
@@ -207,6 +208,12 @@ class FuzzyCircle:
         
         # Get the device from the input size tensor if it's a tensor, otherwise default to CPU
         device = size.device if torch.is_tensor(size) else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+        random_center = getattr(self, "random_center", False)
+        center_tensor = getattr(self, "center", torch.tensor((0.5, 0.5)))
+        center_tensor = torch.as_tensor(center_tensor, dtype=torch.float, device=device)
+        center_x_range = getattr(self, "center_x_range", (0.2, 0.8))
+        center_y_range = getattr(self, "center_y_range", (0.2, 0.8))
         
         # Create empty tensor for coordinates
         coords = torch.zeros(batch_size, num_loc, 2, device=device)
@@ -217,12 +224,12 @@ class FuzzyCircle:
             radius_std = torch.empty(1, device=device).uniform_(self.radius_std_lower, self.radius_std_upper)
             
             # Sample a random center if specified
-            if self.random_center:
-                center_x = torch.empty(1, device=device).uniform_(self.center_x_range[0], self.center_x_range[1])
-                center_y = torch.empty(1, device=device).uniform_(self.center_y_range[0], self.center_y_range[1])
+            if random_center:
+                center_x = torch.empty(1, device=device).uniform_(center_x_range[0], center_x_range[1])
+                center_y = torch.empty(1, device=device).uniform_(center_y_range[0], center_y_range[1])
                 center = torch.tensor([center_x.item(), center_y.item()], device=device)
             else:
-                center = self.center.to(device)
+                center = center_tensor
             
             # Sample uniform angles
             angles = 2 * math.pi * torch.rand(num_loc, device=device)
@@ -442,9 +449,36 @@ class HybridSampler:
         
         # Get the device from the input size tensor
         device = size.device if torch.is_tensor(size) else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+        # Some legacy checkpoints stored sub-distributions as dist1, dist2, ...
+        if (not hasattr(self, "distributions")) or self.distributions is None or len(self.distributions) == 0:
+            recovered = []
+            recovered_names = []
+            for name, value in sorted(self.__dict__.items()):
+                if name.startswith("dist") and hasattr(value, "sample"):
+                    recovered.append(value)
+                    recovered_names.append(name)
+            if recovered:
+                warnings.warn(
+                    f"HybridSampler recovered embedded distributions: {', '.join(recovered_names)}",
+                    RuntimeWarning,
+                )
+                self.distributions = recovered
+            else:
+                raise AttributeError("HybridSampler has no distributions defined or recoverable. "
+                                     "Please instantiate with explicit distributions.")
+
+        # Ensure we have probabilities matching the number of distributions
+        if not hasattr(self, "probabilities") or self.probabilities is None:
+            self.probabilities = torch.ones(len(self.distributions), dtype=torch.float)
+        probabilities = torch.as_tensor(self.probabilities, dtype=torch.float)
+        if probabilities.numel() != len(self.distributions):
+            probabilities = torch.ones(len(self.distributions), dtype=torch.float)
+        probabilities = probabilities / probabilities.sum()
+        self.probabilities = probabilities
         
         # Move probabilities to the same device
-        probabilities = self.probabilities.to(device)
+        probabilities = probabilities.to(device)
         
         # Create tensor to store results
         coords = torch.zeros(batch_size, num_loc, 2, device=device)
@@ -486,4 +520,3 @@ if __name__ == "__main__":
 
     plt.tight_layout()
     plt.savefig("fuzzy_circle_distribution.png")
-

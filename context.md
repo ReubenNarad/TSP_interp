@@ -68,6 +68,11 @@ A comprehensive module containing multiple TSP instance distribution classes:
 - Various feature visualization PNG files and analysis results
 - **runs/**: Training run outputs and checkpoints
 
+### 10. Cross-Layer Transcoders (`clt/`)
+- **model.py**: Sparse CLT architecture mirroring the top-k SAE but mapping between layers
+- **train_transcoder.py**: W&B-ready trainer that consumes existing activation dumps and fits cross-layer transcoders
+- Training artifacts are written under `runs/<policy_run>/clt/clt_runs/<source__to__target>/`
+
 ## Workflow
 
 The project follows a four-step workflow:
@@ -104,6 +109,7 @@ Key parameters:
 - `run_name`: Name of the policy run to collect activations from
 - `num_instances`: Number of TSP instances to process
 - `batch_size`: Batch size for processing
+- `chunk_size`: If set when calling `sae.collect_activations` directly, limits the number of instances processed per forward pass to avoid GPU OOM.
 
 This script calls `sae/collect_activations.py` to run the trained policy on TSP instances and extract activations from its encoder layers.
 
