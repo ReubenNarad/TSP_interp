@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Tuple
 import torch
 import numpy as np
 from tqdm import tqdm
+from torchrl.data import Composite
 
 # Ensure torch.load defaults to weights_only=False for trusted legacy checkpoints
 os.environ.setdefault("TORCH_LOAD_WEIGHTS_ONLY", "0")
@@ -84,6 +85,22 @@ def collect_activations(args):
     env_path = os.path.join(run_path, "env.pkl")
     with open(env_path, "rb") as f:
         env = pickle.load(f)
+
+    def _patch_spec(spec):
+        """Ensure Composite specs have newer attributes for compatibility with old pickles."""
+        if isinstance(spec, Composite):
+            if not hasattr(spec, "data_cls"):
+                spec.data_cls = None
+            if not hasattr(spec, "step_mdp_static"):
+                spec.step_mdp_static = False
+            for child in spec.values():
+                if child is not None:
+                    _patch_spec(child)
+
+    for spec_name in ["input_spec", "output_spec", "observation_spec", "reward_spec"]:
+        spec = getattr(env, spec_name, None)
+        if spec is not None:
+            _patch_spec(spec)
     
     # Create the output directory inside the run directory
     activations_dir = os.path.join(run_path, "sae", "activations")
