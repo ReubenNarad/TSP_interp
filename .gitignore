@@ -8,6 +8,7 @@ lightning_logs/
 # Project specific
 /runs/
 /concorde_temp/
+scripts/local_uniform/
 
 # Allow images in the images directory for documentation
 !/images/feature_example1.png
