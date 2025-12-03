@@ -10,6 +10,9 @@ lightning_logs/
 /concorde_temp/
 scripts/local_uniform/
 
+# Virtual environment
+/env/
+
 # Allow images in the images directory for documentation
 !/images/feature_example1.png
 !/images/feature_example2.png

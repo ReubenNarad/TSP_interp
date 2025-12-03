@@ -1,0 +1,1 @@
+ hmm, I'm imagining, since I'll be probing for all sorts of stuff, there might need to be a more intentional format for tracking attributes of an instance-- that way it *could* come from 

@@ -135,6 +135,35 @@ The sparse autoencoder learns interpretable features from the policy's neural re
   </tr>
 </table>
 
+## CLT Interactive Viewer
+
+We ship a lightweight web viewer (FastAPI + vanilla JS) for exploring Cross-Layer Transcoder (CLT) features with live overlays, per-instance toggles, and policy tour visualization.
+
+1. **Collect viewer tensors for a CLT run**
+   ```bash
+   python scripts/collect_clt_viewer_data.py \
+     --run_dir runs/uniform_policy_v1 \
+     --pair_name encoder_layer_0__to__encoder_output \
+     --num_instances 12
+   ```
+   or run the convenience wrapper:
+   ```bash
+   RUN_NAME=uniform_policy_v1 scripts/local_uniform/collect_clt_viewer_data.sh
+   ```
+   Each CLT run then stores `viz/viewer_data/{manifest.json, instances.npz}` with node coordinates, CLT latents, and rollout tours.
+
+2. **Launch the viewer**
+   ```bash
+   RUN_NAME=uniform_policy_v1 scripts/local_uniform/launch_clt_viewer.sh
+   ```
+   This sets the search root to `runs/${RUN_NAME}` and starts a FastAPI server (default `0.0.0.0:8501`). Open `http://localhost:8501` (or forward the port over SSH) to interactively:
+   - Switch between any CLT run that has viewer data
+   - Choose ranked or custom feature indices
+   - Toggle which instances contribute to the overlay
+   - Render policy tours with **standard**, **activation-threshold (blue vs. red)**, or **per-edge intensity** highlighting to surface where a feature is most active
+
+Set `SEARCH_ROOT`, `HOST`, or `PORT` before launching to customize the server, or export `CLT_VIEWER_MANIFEST=/path/to/manifest.json` to load a single dataset.
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.

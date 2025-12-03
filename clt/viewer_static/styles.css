@@ -1,0 +1,210 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  margin: 0;
+  background: #f5f5f7;
+  color: #1f1f1f;
+}
+
+header {
+  background: #1b263b;
+  color: #fff;
+  padding: 1.5rem 2rem;
+}
+
+header h1 {
+  margin: 0 0 0.5rem;
+}
+
+main {
+  padding: 1.5rem 2rem;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.controls {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  display: grid;
+  gap: 1rem;
+}
+
+.control-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.control-group.inline label {
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+  gap: 0.35rem;
+}
+
+select,
+input[type="number"] {
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid #cfd6e6;
+  font-size: 0.95rem;
+}
+
+.threshold-group {
+  margin-top: 0.4rem;
+  display: none;
+}
+
+.threshold-group input {
+  margin-top: 0.2rem;
+}
+
+.threshold-group label {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.threshold-group.active {
+  display: block;
+}
+
+.instance-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.instance-actions button {
+  flex: 1;
+  border: none;
+  background: #1b263b;
+  color: #fff;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.35rem;
+}
+
+.checkbox-grid label {
+  font-weight: 500;
+  background: #f1f3f7;
+  border-radius: 6px;
+  padding: 0.25rem 0.4rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.visuals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.visual-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.visual-card img {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid #dfe5f1;
+  background: #f8f9fc;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.metric-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.metric-card p {
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin: 0.5rem 0 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+th,
+td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #edf0f7;
+  text-align: left;
+}
+
+tbody tr:nth-child(even) {
+  background: #fafbff;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+footer {
+  padding: 1rem 2rem 2rem;
+  color: #5c637a;
+  font-size: 0.9rem;
+}
+
+@media (min-width: 1100px) {
+  main {
+    grid-template-columns: 300px 1fr;
+    grid-template-areas:
+      "controls visuals"
+      "controls metrics"
+      "controls table";
+  }
+
+  .controls {
+    grid-area: controls;
+  }
+
+  .visuals {
+    grid-area: visuals;
+  }
+
+  .metrics {
+    grid-area: metrics;
+  }
+
+  table {
+    grid-area: table;
+  }
+}
+.threshold-group small {
+  display: block;
+  color: #6b7280;
+  font-size: 0.8rem;
+  margin-bottom: 0.1rem;
+}

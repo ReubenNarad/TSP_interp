@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CLT Feature Viewer</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header>
+    <h1>Cross-Layer Transcoder Feature Viewer</h1>
+    <p>Interactively explore CLT features with live overlays, instance toggles, and tour visualization.</p>
+  </header>
+
+  <main>
+    <section class="controls">
+      <div class="control-group">
+        <label for="run-select">CLT Run</label>
+        <select id="run-select"></select>
+        <small id="run-summary"></small>
+      </div>
+
+      <div class="control-group">
+        <label for="feature-select">Top Features</label>
+        <select id="feature-select"></select>
+      </div>
+
+      <div class="control-group">
+        <label for="feature-input">Custom Feature Index</label>
+        <input type="number" id="feature-input" min="0" value="0">
+      </div>
+
+      <div class="control-group">
+        <label>Overlay Instances</label>
+        <div class="instance-actions">
+          <button id="select-all">Select all</button>
+          <button id="clear-all">Clear</button>
+        </div>
+        <div id="instance-checkboxes" class="checkbox-grid"></div>
+      </div>
+
+      <div class="control-group">
+        <label for="overlay-tour-mode">Overlay tour mode</label>
+        <select id="overlay-tour-mode">
+          <option value="none">None</option>
+          <option value="standard" selected>Standard</option>
+          <option value="threshold">Activation threshold</option>
+          <option value="edge">Edge intensity</option>
+        </select>
+        <div class="threshold-group" id="overlay-threshold-group">
+          <label for="overlay-threshold">Threshold</label>
+          <input type="number" id="overlay-threshold" step="0.001" value="0.001">
+        </div>
+        <div class="threshold-group" id="overlay-edge-bold-group">
+          <label for="overlay-edge-bold">Edge bold threshold</label>
+          <input type="number" id="overlay-edge-bold" step="0.001" value="0.05">
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label for="single-tour-mode">Single-instance tour mode</label>
+        <select id="single-tour-mode">
+          <option value="none">None</option>
+          <option value="standard" selected>Standard</option>
+          <option value="threshold">Activation threshold</option>
+          <option value="edge">Edge intensity</option>
+        </select>
+        <div class="threshold-group" id="single-threshold-group">
+          <label for="single-threshold">Threshold</label>
+          <input type="number" id="single-threshold" step="0.001" value="0.001">
+        </div>
+        <div class="threshold-group" id="single-edge-bold-group">
+          <label for="single-edge-bold">Edge bold threshold</label>
+          <input type="number" id="single-edge-bold" step="0.001" value="0.05">
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label for="single-instance-select">Single Instance</label>
+        <select id="single-instance-select"></select>
+      </div>
+    </section>
+
+    <section class="visuals">
+      <div class="visual-card">
+        <h2>Overlay</h2>
+        <img id="overlay-image" alt="Overlay visualization">
+      </div>
+      <div class="visual-card">
+        <h2>Single Instance</h2>
+        <img id="single-image" alt="Single instance visualization">
+      </div>
+    </section>
+
+    <section class="metrics">
+      <div class="metric-card">
+        <h3>Mean Activation</h3>
+        <p id="mean-activation">–</p>
+      </div>
+      <div class="metric-card">
+        <h3>Mean |Activation|</h3>
+        <p id="mean-abs-activation">–</p>
+      </div>
+      <div class="metric-card">
+        <h3>Non-zero Rate</h3>
+        <p id="nonzero-rate">–</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Instance Means</h2>
+      <table id="instance-table">
+        <thead>
+          <tr>
+            <th>Instance</th>
+            <th>Mean Activation</th>
+            <th>Overlay</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer>
+    <small>Data sourced from <code>manifest.json</code> files produced by <code>scripts/collect_clt_viewer_data.py</code>.</small>
+  </footer>
+
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

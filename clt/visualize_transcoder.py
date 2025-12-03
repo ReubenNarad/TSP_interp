@@ -1,9 +1,6 @@
 import argparse
-import json
-import os
-import pickle
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import List, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,11 +8,14 @@ import torch
 from matplotlib.colors import Normalize
 
 from clt.model import CrossLayerTranscoder
-from torchrl.data import Composite
-
 from clt.train_transcoder import load_activation_tensors
-from policy.reinforce_clipped import REINFORCEClipped
-from sae.collect_activations import EnhancedHookedPolicy
+from clt.utils import (
+    apply_normalization,
+    collect_instances_for_overlay,
+    load_env_and_policy,
+    load_json,
+    resolve_clt_run,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -52,10 +52,10 @@ def parse_args() -> argparse.Namespace:
         help="Number of fresh TSP instances to visualize with CLT activations.",
     )
     parser.add_argument(
-        "--features_per_instance",
+        "--overlay_features",
         type=int,
-        default=3,
-        help="Number of strongest CLT features to render per instance.",
+        default=10,
+        help="Number of feature overlays to generate (starting from feature 0).",
     )
     parser.add_argument(
         "--overlay_batch_size",
@@ -76,122 +76,6 @@ def parse_args() -> argparse.Namespace:
         help="Optional override for where to store visual artifacts (defaults to <clt_run>/viz).",
     )
     return parser.parse_args()
-
-
-def resolve_clt_run(run_dir: Path, pair_name: str, subdir: str) -> Path:
-    pair_dir = run_dir / "clt" / "clt_runs" / pair_name
-    if not pair_dir.exists():
-        raise FileNotFoundError(f"CLT pair directory not found: {pair_dir}")
-
-    if subdir == "latest":
-        latest_link = pair_dir / "latest"
-        if latest_link.is_symlink() or latest_link.exists():
-            resolved = pair_dir / os.readlink(latest_link) if latest_link.is_symlink() else latest_link
-            return resolved.resolve()
-        # Fall back to lexicographically latest folder
-        candidates = sorted([p for p in pair_dir.iterdir() if p.is_dir()])
-        if not candidates:
-            raise FileNotFoundError(f"No CLT runs found under {pair_dir}")
-        return candidates[-1]
-
-    resolved = pair_dir / subdir
-    if not resolved.exists():
-        raise FileNotFoundError(f"CLT run directory not found: {resolved}")
-    return resolved
-
-
-def load_json(path: Path) -> Dict:
-    with open(path, "r") as fp:
-        return json.load(fp)
-
-
-def patch_env_specs(env) -> None:
-    def _patch(spec):
-        if isinstance(spec, Composite):
-            if not hasattr(spec, "data_cls"):
-                spec.data_cls = None
-            if not hasattr(spec, "step_mdp_static"):
-                spec.step_mdp_static = False
-            for child in spec.values():
-                if child is not None:
-                    _patch(child)
-
-    for spec_name in ["input_spec", "output_spec", "observation_spec", "reward_spec"]:
-        spec = getattr(env, spec_name, None)
-        if spec is not None:
-            _patch(spec)
-
-
-def load_env_and_policy(run_dir: Path, device: torch.device) -> Tuple[Dict, EnhancedHookedPolicy]:
-    env_path = run_dir / "env.pkl"
-    config_path = run_dir / "config.json"
-
-    if not env_path.exists():
-        raise FileNotFoundError(f"Environment pickle missing: {env_path}")
-    if not config_path.exists():
-        raise FileNotFoundError(f"Policy config missing: {config_path}")
-
-    with open(env_path, "rb") as fp:
-        env = pickle.load(fp)
-
-    with open(config_path, "r") as fp:
-        config = json.load(fp)
-
-    patch_env_specs(env)
-
-    checkpoint_dir = run_dir / "checkpoints"
-    candidates = list(checkpoint_dir.glob("checkpoint_epoch_*.ckpt"))
-    if not candidates:
-        raise FileNotFoundError(f"No checkpoints found in {checkpoint_dir}")
-    latest = max(
-        candidates,
-        key=lambda p: int(p.stem.split("checkpoint_epoch_")[1]),
-    )
-
-    policy = EnhancedHookedPolicy(
-        env_name=env.name,
-        embed_dim=config["embed_dim"],
-        num_encoder_layers=config["n_encoder_layers"],
-        num_heads=8,
-        temperature=config["temperature"],
-        dropout=config.get("dropout", 0.0),
-        attention_dropout=config.get("attention_dropout", 0.0),
-    )
-
-    model = REINFORCEClipped.load_from_checkpoint(
-        latest,
-        env=env,
-        policy=policy,
-        strict=False,
-    )
-    policy = model.policy.to(device)
-    policy.eval()
-    return {"env": env, "config": config}, policy
-
-
-def apply_normalization(
-    tensor: torch.Tensor,
-    stats: Dict[str, Optional[Sequence[float]]],
-    kind: str,
-) -> torch.Tensor:
-    if kind == "none" or stats is None:
-        return tensor
-
-    mean = stats.get("mean")
-    std = stats.get("std")
-
-    if kind == "center":
-        if mean is None:
-            return tensor
-        mean_t = torch.tensor(mean, dtype=tensor.dtype, device=tensor.device)
-        return tensor - mean_t
-    if kind == "standard":
-        if mean is None or std is None:
-            return tensor
-        mean_t = torch.tensor(mean, dtype=tensor.dtype, device=tensor.device)
-        std_t = torch.tensor(std, dtype=tensor.dtype, device=tensor.device).clamp_min(1e-6)
-        return (tensor - mean_t) / std_t
-    raise ValueError(f"Unknown normalization kind '{kind}'")
 
 
 def plot_histogram(latents: torch.Tensor, output_path: Path) -> None:
@@ -247,66 +131,69 @@ def plot_decoder_heatmap(
     plt.close()
 
 
-def draw_tour(ax, coords: np.ndarray, actions: Optional[np.ndarray]) -> None:
-    if actions is None:
-        return
-    if len(actions) == 0:
-        return
-    tour = np.concatenate((actions, [actions[0]]))
-    for i in range(len(tour) - 1):
-        start, end = tour[i], tour[i + 1]
-        dx = coords[end, 0] - coords[start, 0]
-        dy = coords[end, 1] - coords[start, 1]
-        ax.arrow(
-            coords[start, 0],
-            coords[start, 1],
-            dx,
-            dy,
-            head_width=0.01,
-            head_length=0.02,
-            fc="black",
-            ec="black",
-            alpha=0.45,
-            length_includes_head=True,
-            zorder=0,
-        )
-
-
-def visualize_instance_features(
-    instance: Dict[str, np.ndarray],
-    feature_indices: List[int],
+def visualize_feature_overlay(
+    instances: List[Dict[str, np.ndarray]],
+    feature_idx: int,
     output_path: Path,
 ) -> None:
-    locs = instance["locs"]
-    actions = instance.get("actions")
-    latents = instance["latents"]
+    if not instances:
+        raise ValueError("At least one instance is required to visualize overlays.")
 
-    num_features = len(feature_indices)
-    fig, axes = plt.subplots(1, num_features, figsize=(4 * num_features, 4))
-    if num_features == 1:
-        axes = [axes]
+    global_max = max(float(instance["latents"][:, feature_idx].max()) for instance in instances)
+    vmax = max(global_max, 1e-6)
+    norm = Normalize(vmin=0, vmax=vmax)
 
-    for ax, feature_idx in zip(axes, feature_indices):
-        values = latents[:, feature_idx]
-        norm = Normalize(vmin=0, vmax=max(values.max(), 1e-6))
+    fig, ax = plt.subplots(figsize=(6, 6))
+    scatter = None
+    markers = ["o", "s", "^", "D", "v", "<", ">", "p", "*", "h"]
+    legend_handles: List[plt.Line2D] = []
+
+    for idx, instance in enumerate(instances):
+        locs = instance["locs"].numpy()
+        activations = instance["latents"][:, feature_idx].numpy()
+        marker = markers[idx % len(markers)]
         scatter = ax.scatter(
             locs[:, 0],
             locs[:, 1],
-            c=values,
+            c=activations,
             cmap="viridis",
-            s=90,
+            s=70,
+            alpha=0.85,
             edgecolors="black",
+            linewidths=0.35,
+            marker=marker,
             norm=norm,
+            zorder=2,
         )
-        draw_tour(ax, locs, actions)
-        ax.set_title(f"Feature {feature_idx}")
-        ax.set_aspect("equal")
-        ax.set_xlim(-0.05, 1.05)
-        ax.set_ylim(-0.05, 1.05)
-        plt.colorbar(scatter, ax=ax, fraction=0.046, pad=0.04)
+        legend_handles.append(
+            plt.Line2D(
+                [0],
+                [0],
+                marker=marker,
+                color="gray",
+                markerfacecolor="gray",
+                markersize=8,
+                linewidth=0,
+                label=f"Instance {idx + 1}",
+            )
+        )
+
+    if scatter is None:
+        raise RuntimeError("Failed to create scatter plot for overlay visualization.")
+
+    cbar = plt.colorbar(scatter, ax=ax, fraction=0.046, pad=0.04)
+    cbar.set_label(f"Feature {feature_idx} activation")
+
+    ax.set_title(f"Feature {feature_idx} overlay across {len(instances)} instances")
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    ax.set_aspect("equal")
+    ax.set_xlim(-0.05, 1.05)
+    ax.set_ylim(-0.05, 1.05)
+    ax.legend(handles=legend_handles, loc="upper right", fontsize=8)
 
     plt.tight_layout()
-    plt.savefig(output_path, dpi=150)
+    plt.savefig(output_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -444,13 +331,12 @@ def main() -> None:
         overlay_dir = viz_dir / "overlays"
         overlay_dir.mkdir(exist_ok=True)
 
-        for idx, instance in enumerate(instances):
-            latents_tensor = torch.from_numpy(instance["latents"])
-            mean_per_feature = latents_tensor.mean(dim=0)
-            num_features = min(args.features_per_instance, mean_per_feature.shape[0])
-            feature_ids = torch.topk(mean_per_feature, k=num_features).indices.tolist()
-            out_path = overlay_dir / f"instance_{idx:02d}.png"
-            visualize_instance_features(instance, feature_ids, out_path)
+        if instances:
+            latent_dim = instances[0]["latents"].shape[1]
+            num_features = min(args.overlay_features, latent_dim)
+            for feature_idx in range(num_features):
+                out_path = overlay_dir / f"feature_{feature_idx:02d}.png"
+                visualize_feature_overlay(instances, feature_idx, out_path)
 
 
 if __name__ == "__main__":
