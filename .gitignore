@@ -8,13 +8,18 @@ lightning_logs/
 # Project specific
 /runs/
 /concorde_temp/
+/experiments/
+/docs/archive/
 scripts/local_uniform/
 
 # Virtual environment
 /env/
+/arxiv/
 
 # Allow images in the images directory for documentation
 !/images/feature_example1.png
 !/images/feature_example2.png
 
 .env
+.venv/
+wandb/
