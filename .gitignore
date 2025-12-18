@@ -8,7 +8,10 @@ lightning_logs/
 # Project specific
 /runs/
 /concorde_temp/
-/experiments/
+/experiments/*
+!/experiments/what-if/
+/experiments/what-if/data/
+/experiments/what-if/tmp/
 /docs/archive/
 scripts/local_uniform/
 
