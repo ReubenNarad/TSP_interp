@@ -40,7 +40,7 @@ class REINFORCEClipped(REINFORCE):
         self.min_lr = min_lr
         
         assert clip_type in ["norm", "value"], "clip_type must be either 'norm' or 'value'"
-        assert lr_decay in ["none", "cosine", "linear"], "lr_decay must be 'none', 'cosine', or 'linear'"
+        assert lr_decay in ["none", "cosine", "linear", "exponential"], "lr_decay must be 'none', 'cosine', 'linear', or 'exponential'"
         
         # Disable automatic optimization
         self.automatic_optimization = False
@@ -116,6 +116,16 @@ class REINFORCEClipped(REINFORCE):
                 optimizer,
                 lr_lambda=lambda_fn
             )
+        elif self.lr_decay == "exponential":
+            base_lr = float(self.hparams.optimizer_kwargs["lr"])
+            min_lr = float(self.min_lr)
+            if min_lr <= 0 or base_lr <= 0 or min_lr >= base_lr:
+                log.warning(
+                    f"Invalid min_lr/base_lr for exponential decay (base_lr={base_lr}, min_lr={min_lr}); disabling decay."
+                )
+                return optimizer
+            gamma = (min_lr / base_lr) ** (1.0 / max(1, int(self.trainer.max_epochs)))
+            scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=gamma)
         
         return {
             "optimizer": optimizer,

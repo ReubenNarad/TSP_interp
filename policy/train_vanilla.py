@@ -227,7 +227,7 @@ if __name__ == "__main__":
     parser.add_argument("--reset_optimizer", action="store_true",
                        help="Alias for --resume_weights_only (kept for backwards compatibility).")
     parser.add_argument("--lr_decay", type=str, default="none", 
-                       choices=["none", "cosine", "linear"],
+                       choices=["none", "cosine", "linear", "exponential"],
                        help="Learning rate decay type")
     parser.add_argument("--min_lr", type=float, default=1e-6,
                        help="Minimum learning rate at end of training")
