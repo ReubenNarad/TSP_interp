@@ -141,6 +141,11 @@ def main(args):
     checkpoint_callback = CheckpointCallback(run_name, args.checkpoint_freq)
 
 
+    # Note: --reset_optimizer historically existed but didn't do what it claimed (it ran after training finished).
+    # Treat it as an alias for --resume_weights_only.
+    if args.reset_optimizer:
+        args.resume_weights_only = True
+
     if args.load_checkpoint:
         # Check if it's just an epoch number
         if args.load_checkpoint.isdigit():
@@ -173,21 +178,21 @@ def main(args):
         gradient_clip_val=None,
     )
 
+    def _load_weights_only(path: str) -> None:
+        ckpt = torch.load(path, weights_only=False, map_location="cpu")
+        if not isinstance(ckpt, dict) or "state_dict" not in ckpt:
+            raise ValueError(f"Unexpected checkpoint format at {path}")
+        missing, unexpected = model.load_state_dict(ckpt["state_dict"], strict=False)
+        if missing or unexpected:
+            print(f"[resume_weights_only] missing keys: {len(missing)}; unexpected keys: {len(unexpected)}")
+
     print("Training...")
-    if checkpoint_path:
+    if checkpoint_path and args.resume_weights_only:
+        print(f"[resume_weights_only] Loading module weights from: {checkpoint_path}")
+        _load_weights_only(checkpoint_path)
+        trainer.fit(model)
+    elif checkpoint_path:
         trainer.fit(model, ckpt_path=checkpoint_path)
-        if checkpoint_path and args.reset_optimizer:
-            print("Resetting optimizer and scheduler states")
-            # Reset optimizer states after loading the model
-            for optimizer in trainer.optimizers:
-                for param_group in optimizer.param_groups:
-                    param_group['lr'] = args.lr
-            
-            # Reset scheduler states if any
-            if trainer.lr_schedulers:
-                for scheduler in trainer.lr_schedulers:
-                    if hasattr(scheduler, 'base_lrs'):
-                        scheduler.base_lrs = [args.lr] * len(scheduler.base_lrs)
     else:
         trainer.fit(model)
     print("Done")
@@ -214,8 +219,13 @@ if __name__ == "__main__":
                        help="Gradient clipping value")
     parser.add_argument("--load_checkpoint", type=str, default=None,
                        help="Path to checkpoint file or epoch number to load (e.g., 'runs/run_name/checkpoints/checkpoint_epoch_260.ckpt' or just '260')")
+    parser.add_argument(
+        "--resume_weights_only",
+        action="store_true",
+        help="Load only model weights from --load_checkpoint (do not restore optimizer/scheduler state).",
+    )
     parser.add_argument("--reset_optimizer", action="store_true",
-                       help="Reset optimizer and scheduler when loading from checkpoint")
+                       help="Alias for --resume_weights_only (kept for backwards compatibility).")
     parser.add_argument("--lr_decay", type=str, default="none", 
                        choices=["none", "cosine", "linear"],
                        help="Learning rate decay type")
