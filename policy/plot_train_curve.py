@@ -1,12 +1,10 @@
 import argparse
 import csv
-import math
 import pickle
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.optimize import curve_fit
 
 
 def _latest_metrics_csv(run_dir: Path) -> Path:
@@ -70,10 +68,6 @@ def _read_val_costs(metrics_csv: Path, step: int) -> tuple[np.ndarray, np.ndarra
     return epochs, costs
 
 
-def _double_exp_fixed_asymptote(x: np.ndarray, a: float, b: float, c: float, d: float, *, asymptote: float) -> np.ndarray:
-    return asymptote + a * np.exp(-b * x) + c * np.exp(-d * x)
-
-
 def main(args: argparse.Namespace) -> None:
     run_dir = Path("runs") / args.run_name
     metrics_csv = _latest_metrics_csv(run_dir)
@@ -88,31 +82,6 @@ def main(args: argparse.Namespace) -> None:
 
     if baseline_cost is not None:
         plt.axhline(y=baseline_cost, color="red", linestyle="--", label="Baseline (Optimal)")
-
-        # Optional double-exponential fit with fixed asymptote at the baseline.
-        if len(epochs) >= 6:
-            x = epochs.astype(np.float64)
-            y = costs.astype(np.float64)
-            # Initial guess: two time scales.
-            a0 = float(y[0] - baseline_cost)
-            c0 = float(0.5 * (y[0] - baseline_cost))
-            p0 = [a0, 0.05, c0, 0.005]
-            bounds = ([-np.inf, 0.0, -np.inf, 0.0], [np.inf, np.inf, np.inf, np.inf])
-            try:
-                popt, _pcov = curve_fit(
-                    lambda xx, a, b, c, d: _double_exp_fixed_asymptote(xx, a, b, c, d, asymptote=baseline_cost),
-                    x,
-                    y,
-                    p0=p0,
-                    bounds=bounds,
-                    maxfev=50_000,
-                )
-                x_fit = np.linspace(float(x.min()), float(x.max()), 250)
-                y_fit = _double_exp_fixed_asymptote(x_fit, *popt, asymptote=baseline_cost)
-                if np.isfinite(y_fit).all() and not math.isclose(float(y_fit.std()), 0.0):
-                    plt.plot(x_fit, y_fit, color="green", linestyle=":", label="Double Exp Fit (Fixed Asymptote)")
-            except Exception:
-                pass
 
     plt.xlabel("Epoch")
     plt.ylabel("Distance")
@@ -143,4 +112,3 @@ if __name__ == "__main__":
         help="Baseline pickle filename in the run dir (e.g. baseline_concorde.pkl). If unset, no baseline/fit is drawn.",
     )
     main(p.parse_args())
-
