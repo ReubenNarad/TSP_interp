@@ -1,8 +1,28 @@
+import contextlib
+import io
 import torch
 import subprocess, os, pickle, argparse, re
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from distributions import Uniform, DualUniform, RandomUniform, FuzzyCircle, HybridSampler
+
+@contextlib.contextmanager
+def _torch_unpickle_on_cpu():
+    """
+    Ensure tensors inside pickled objects load onto CPU even if they were saved from CUDA.
+    This repo uses `pickle.dump` on objects containing tensors, which can fail on CPU-only
+    machines unless we force a CPU map_location during unpickling.
+    """
+    orig = torch.storage._load_from_bytes
+
+    def _load_from_bytes_cpu(b: bytes):
+        return torch.load(io.BytesIO(b), map_location=torch.device("cpu"), weights_only=False)
+
+    torch.storage._load_from_bytes = _load_from_bytes_cpu
+    try:
+        yield
+    finally:
+        torch.storage._load_from_bytes = orig
 
 def write_tsplib_file(filename, coords):
     """
@@ -145,8 +165,9 @@ def main(args):
     input_td = os.path.join(run_path, 'val_td.pkl')
     output_td = os.path.join(run_path, 'baseline.pkl')
 
-    with open(input_td, 'rb') as f:
-        td = pickle.load(f)
+    with _torch_unpickle_on_cpu():
+        with open(input_td, 'rb') as f:
+            td = pickle.load(f)
     
     locs = td["locs"]  # shape: [batch_size, num_locs, 2]
     batch_size = locs.shape[0]

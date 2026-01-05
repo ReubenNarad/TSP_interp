@@ -106,6 +106,7 @@ def main(args):
                         clip_val=args.clip_val,
                         lr_decay=args.lr_decay,
                         min_lr=args.min_lr,
+                        exp_gamma=args.exp_gamma,
                         )
 
     run_name = f"./runs/{args.run_name}"
@@ -129,10 +130,12 @@ def main(args):
         "attention_dropout": args.attention_dropout,
         "lr_decay": args.lr_decay,
         "min_lr": args.min_lr,
+        "exp_gamma": args.exp_gamma,
     }
     with open(f"{run_name}/config.json", "w") as f:
         json.dump(config, f)
-    pickle.dump(val_td, open(f"{run_name}/val_td.pkl", "wb"))
+    # Save validation instances on CPU so downstream scripts work on CPU-only machines.
+    pickle.dump(val_td.to("cpu"), open(f"{run_name}/val_td.pkl", "wb"))
     pickle.dump(env, open(f"{run_name}/env.pkl", "wb"))
 
     # Define the callbacks
@@ -231,6 +234,8 @@ if __name__ == "__main__":
                        help="Learning rate decay type")
     parser.add_argument("--min_lr", type=float, default=1e-6,
                        help="Minimum learning rate at end of training")
+    parser.add_argument("--exp_gamma", type=float, default=None,
+                       help="Exponential LR decay factor per epoch (only used when --lr_decay exponential).")
     args = parser.parse_args()
     main(args)
 

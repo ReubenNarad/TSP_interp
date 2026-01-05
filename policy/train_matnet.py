@@ -1,0 +1,210 @@
+import argparse
+import datetime
+import glob
+import json
+import os
+import pickle
+import sys
+from dataclasses import asdict
+from pathlib import Path
+
+import torch
+from lightning.pytorch.callbacks import Callback
+from lightning.pytorch.loggers import CSVLogger
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from rl4co.envs.routing.atsp.env import ATSPEnv
+from rl4co.envs.routing.atsp.generator import ATSPGenerator
+from rl4co.utils.trainer import RL4COTrainer
+from rl4co.models.zoo.matnet.policy import MatNetPolicy
+
+from env.seattle_atsp_generator import TSPLIBSubmatrixConfig, TSPLIBSubmatrixGenerator
+from policy.reinforce_clipped import REINFORCEClipped
+
+
+def main(args):
+    # Environment / generator
+    if args.tsplib_path:
+        gen_cfg = TSPLIBSubmatrixConfig(
+            tsp_path=args.tsplib_path,
+            num_loc=args.num_loc,
+            symmetrize=args.symmetrize,
+            seed=args.seed,
+        )
+        generator = TSPLIBSubmatrixGenerator(**asdict(gen_cfg))
+        env = ATSPEnv(generator=generator)
+    else:
+        generator = ATSPGenerator(num_loc=args.num_loc)
+        env = ATSPEnv(generator=generator)
+
+    device = torch.device(
+        "mps"
+        if torch.backends.mps.is_available()
+        else "cuda"
+        if torch.cuda.is_available()
+        else "cpu"
+    )
+    # If we are sampling from TSPLIB, also persist per-instance coords/indices for plotting later.
+    if args.tsplib_path:
+        cm, idxs, coords = generator.sample_with_meta(int(args.num_val))
+        # Save metadata for plotting/animation
+        run_dir_preview = os.path.join("./runs", args.run_name)
+        os.makedirs(run_dir_preview, exist_ok=True)
+        np_path = os.path.join(run_dir_preview, "val_indices.npy")
+        import numpy as np
+        np.save(np_path, idxs)
+        if coords is not None:
+            np.save(os.path.join(run_dir_preview, "val_coords_lonlat.npy"), coords)
+        # Use the sampled cost matrices as the fixed validation batch
+        from tensordict import TensorDict
+        val_td = env.reset(td=TensorDict({"cost_matrix": cm}, batch_size=[int(args.num_val)])).to(device)
+    else:
+        val_td = env.reset(batch_size=[args.num_val]).to(device)
+
+    # Policy / model
+    policy = MatNetPolicy(
+        env_name=env.name,
+        embed_dim=args.embed_dim,
+        num_encoder_layers=args.n_encoder_layers,
+        num_heads=args.num_heads,
+        normalization=args.normalization,
+        use_graph_context=args.use_graph_context,
+        bias=args.bias,
+    )
+
+    model = REINFORCEClipped(
+        env,
+        policy,
+        baseline="rollout",
+        baseline_kwargs={"warmup": 1000},
+        batch_size=args.batch_size,
+        train_data_size=args.num_instances,
+        val_data_size=args.num_val,
+        optimizer_kwargs={"lr": args.lr},
+        clip_val=args.clip_val,
+        lr_decay=args.lr_decay,
+        min_lr=args.min_lr,
+        exp_gamma=args.exp_gamma,
+    )
+
+    # Run dir / logging
+    run_dir = os.path.join("./runs", args.run_name)
+    os.makedirs(run_dir, exist_ok=True)
+    os.makedirs(os.path.join(run_dir, "results"), exist_ok=True)
+    os.makedirs(os.path.join(run_dir, "checkpoints"), exist_ok=True)
+
+    config = vars(args).copy()
+    config["env_name"] = env.name
+    config["timestamp"] = datetime.datetime.now().isoformat()
+    for k, v in list(config.items()):
+        if isinstance(v, Path):
+            config[k] = str(v)
+    with open(os.path.join(run_dir, "config.json"), "w") as f:
+        json.dump(config, f, indent=2)
+    pickle.dump(val_td, open(os.path.join(run_dir, "val_td.pkl"), "wb"))
+    pickle.dump(env, open(os.path.join(run_dir, "env.pkl"), "wb"))
+
+    class ResultsCallback(Callback):
+        def __init__(self, run_dir: str):
+            self.run_dir = run_dir
+
+        def on_train_epoch_end(self, trainer, pl_module, unused=0):
+            device_local = torch.device(
+                "cuda"
+                if torch.cuda.is_available()
+                else "mps"
+                if torch.backends.mps.is_available()
+                else "cpu"
+            )
+            policy_local = pl_module.policy.to(device_local)
+            out = policy_local(val_td.clone(), phase="test", decode_type="greedy", return_actions=True)
+            results = {
+                "actions": out["actions"].cpu().detach(),
+                "rewards": out["reward"].cpu().detach(),
+            }
+            pickle.dump(
+                results,
+                open(os.path.join(self.run_dir, "results", f"results_epoch_{trainer.current_epoch}.pkl"), "wb"),
+            )
+
+    class CheckpointCallback(Callback):
+        def __init__(self, run_dir: str, checkpoint_freq: int):
+            self.run_dir = run_dir
+            self.checkpoint_freq = checkpoint_freq
+
+        def on_train_epoch_end(self, trainer, pl_module, unused=0):
+            if (trainer.current_epoch + 1) % self.checkpoint_freq == 0 or (
+                trainer.current_epoch + 1
+            ) == trainer.max_epochs:
+                checkpoint_path = os.path.join(
+                    self.run_dir, "checkpoints", f"checkpoint_epoch_{trainer.current_epoch + 1}.ckpt"
+                )
+                trainer.save_checkpoint(checkpoint_path)
+
+    # Resume support (match train_vanilla behavior)
+    if args.load_checkpoint:
+        if args.load_checkpoint.isdigit():
+            checkpoint_path = os.path.join(run_dir, "checkpoints", f"checkpoint_epoch_{args.load_checkpoint}.ckpt")
+        else:
+            checkpoint_path = args.load_checkpoint
+        if not os.path.exists(checkpoint_path):
+            checkpoint_files = glob.glob(os.path.join(run_dir, "checkpoints", "checkpoint_epoch_*.ckpt"))
+            checkpoint_path = max(checkpoint_files, key=os.path.getctime) if checkpoint_files else None
+    else:
+        checkpoint_path = None
+
+    precision = "16-mixed" if torch.cuda.is_available() else "32-true"
+
+    trainer = RL4COTrainer(
+        max_epochs=args.num_epochs,
+        accelerator="auto",
+        devices=1,
+        precision=precision,
+        logger=CSVLogger(save_dir=run_dir, name="logs"),
+        callbacks=[ResultsCallback(run_dir), CheckpointCallback(run_dir, args.checkpoint_freq)],
+        gradient_clip_val=None,
+    )
+
+    print("Training...")
+    if checkpoint_path:
+        trainer.fit(model, ckpt_path=checkpoint_path)
+    else:
+        trainer.fit(model)
+    print("Done")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--run_name", type=str, required=True)
+
+    parser.add_argument("--num_epochs", type=int, default=10)
+    parser.add_argument("--num_instances", type=int, default=10_000)
+    parser.add_argument("--num_val", type=int, default=128)
+    parser.add_argument("--num_loc", type=int, default=50)
+    parser.add_argument("--batch_size", type=int, default=256)
+
+    parser.add_argument("--lr", type=float, default=1e-4)
+    parser.add_argument("--checkpoint_freq", type=int, default=5)
+    parser.add_argument("--clip_val", type=float, default=1.0)
+
+    parser.add_argument("--lr_decay", type=str, default="none", choices=["none", "cosine", "linear", "exponential"])
+    parser.add_argument("--min_lr", type=float, default=1e-6)
+    parser.add_argument("--exp_gamma", type=float, default=None)
+    parser.add_argument("--load_checkpoint", type=str, default=None)
+
+    # MatNet policy params
+    parser.add_argument("--embed_dim", type=int, default=128)
+    parser.add_argument("--n_encoder_layers", type=int, default=3)
+    parser.add_argument("--num_heads", type=int, default=8)
+    parser.add_argument("--normalization", type=str, default="instance", choices=["batch", "instance", "layer", "none"])
+    parser.add_argument("--use_graph_context", action="store_true")
+    parser.add_argument("--bias", action="store_true")
+
+    # TSPLIB-based sampling
+    parser.add_argument("--tsplib_path", type=Path, default=None, help="Path to TSPLIB FULL_MATRIX instance to subsample.")
+    parser.add_argument("--symmetrize", type=str, default="none", choices=["none", "min", "avg"])
+    parser.add_argument("--seed", type=int, default=0)
+
+    args = parser.parse_args()
+    main(args)

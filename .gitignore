@@ -8,6 +8,18 @@ lightning_logs/
 # Project specific
 /runs/
 /concorde_temp/
+instance_*.pul
+instance_*.sav
+instance_*.res
+instance_*.mas
+instance_*.pix
+instance_*.sol
+Oinstance_*.pul
+Oinstance_*.sav
+Oinstance_*.res
+Oinstance_*.mas
+Oinstance_*.pix
+Oinstance_*.sol
 /experiments/*
 !/experiments/what-if/
 /experiments/what-if/data/
@@ -16,7 +28,6 @@ lightning_logs/
 scripts/local_uniform/
 
 # Virtual environment
-/env/
 /arxiv/
 
 # Allow images in the images directory for documentation
