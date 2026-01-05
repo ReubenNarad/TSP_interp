@@ -2,6 +2,8 @@ import contextlib
 import io
 import torch
 import subprocess, os, pickle, argparse, re
+import tempfile
+from pathlib import Path
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from distributions import Uniform, DualUniform, RandomUniform, FuzzyCircle, HybridSampler
@@ -46,7 +48,7 @@ def write_tsplib_file(filename, coords):
         f.write("EOF\n")
 
 
-def run_concorde(instance_filename, solution_filename):
+def run_concorde(instance_filename, solution_filename, *, cwd: str | None = None):
     """
     Run Concorde on the given TSP instance file and save solution to solution_filename.
     Returns the number of branch-and-bound nodes used.
@@ -58,7 +60,7 @@ def run_concorde(instance_filename, solution_filename):
     Returns:
         int: Number of branch-and-bound nodes, or -1 if not found.
     """
-    base_path = os.path.splitext(instance_filename)[0]
+    base_path = os.path.splitext(os.path.basename(instance_filename))[0]
     bb_nodes = -1 # Default value if not found
     try:
         # Capture stdout to parse node count
@@ -67,7 +69,8 @@ def run_concorde(instance_filename, solution_filename):
             check=True,
             text=True,
             stdout=subprocess.PIPE, # Capture standard output
-            stderr=subprocess.PIPE
+            stderr=subprocess.PIPE,
+            cwd=cwd,
         )
 
         # Print the stdout for debugging
@@ -93,18 +96,6 @@ def run_concorde(instance_filename, solution_filename):
         if match:
             bb_nodes = int(match.group(1))
         # raise # Optionally re-raise the exception
-    # Clean up Concorde's intermediate files
-    extensions = ['.pul', '.sav', '.res', '.mas', '.pix', '.sol']
-    base_stub = os.path.basename(base_path)
-    for ext in extensions:
-        # Concorde uses <basename> + ext or 'O' + <basename> + ext
-        temp_file = f"{base_stub}{ext}"
-        o_temp_file = "O" + temp_file
-        if os.path.exists(temp_file):
-            os.remove(temp_file)
-        if os.path.exists(o_temp_file):
-            os.remove(o_temp_file)
-
     return bb_nodes
 
 
@@ -176,34 +167,45 @@ def main(args):
     all_rewards = []  # We'll store -tour_length here, consistent with how TSPEnv does it
     all_bb_nodes = [] # Store branch-and-bound node counts
 
-    # Create a local scratch folder for TSP files
-    scratch_folder = "concorde_temp"
-    os.makedirs(scratch_folder, exist_ok=True)
-
     print(f"Solving {batch_size} instances...")
-    for i in range(batch_size):
-        coords_i = locs[i]  # [num_locs, 2]
-        tsp_filename = os.path.join(scratch_folder, f"instance_{i}.tsp")
-        sol_filename = os.path.join(scratch_folder, f"solution_{i}.sol")
+    run_path_p = Path(run_path)
+    with tempfile.TemporaryDirectory(prefix="concorde_", dir=str(run_path_p)) as tmp:
+        scratch = Path(tmp)
 
-        write_tsplib_file(tsp_filename, coords_i)
+        for i in range(batch_size):
+            coords_i = locs[i]  # [num_locs, 2]
+            tsp_filename = scratch / f"instance_{i}.tsp"
+            sol_filename = scratch / f"solution_{i}.sol"
 
-        # 3) Run Concorde and get node count
-        bb_nodes = run_concorde(tsp_filename, sol_filename)
+            write_tsplib_file(str(tsp_filename), coords_i)
 
-        # 4) Read the solution route
-        route_0based = read_solution_file(sol_filename)
+            # Run Concorde in the scratch dir so it cannot litter the repo.
+            bb_nodes = run_concorde(tsp_filename.name, sol_filename.name, cwd=str(scratch))
 
-        # Convert route to a torch tensor
-        route_t = torch.tensor(route_0based, dtype=torch.long)
+            # Read the solution route
+            route_0based = read_solution_file(str(sol_filename))
 
-        # Compute the TSP reward like in TSPEnv (reward = -tour_length)
-        tour_length = compute_tour_length(coords_i, route_t)
-        reward = -tour_length.clone().detach()
+            # Convert route to a torch tensor
+            route_t = torch.tensor(route_0based, dtype=torch.long)
 
-        all_solutions.append(route_t)
-        all_rewards.append(reward)
-        all_bb_nodes.append(bb_nodes) # Append the node count
+            # Compute the TSP reward like in TSPEnv (reward = -tour_length)
+            tour_length = compute_tour_length(coords_i, route_t)
+            reward = -tour_length.clone().detach()
+
+            all_solutions.append(route_t)
+            all_rewards.append(reward)
+            all_bb_nodes.append(bb_nodes) # Append the node count
+
+            # Clean up Concorde artifacts as we go (defensive; tempdir will be removed anyway).
+            for base_stub in (f"instance_{i}", f"solution_{i}"):
+                for ext in (".pul", ".sav", ".res", ".mas", ".pix", ".sol", ".tsp"):
+                    for prefix in ("", "O"):
+                        p = scratch / f"{prefix}{base_stub}{ext}"
+                        try:
+                            if p.exists():
+                                p.unlink()
+                        except Exception:
+                            pass
 
     # Convert to tensors
     optimal_routes = torch.stack(all_solutions, dim=0)      # [batch_size, num_locs]

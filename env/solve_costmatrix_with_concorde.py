@@ -5,6 +5,7 @@ import os
 import pickle
 import re
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import Literal, Optional
 
@@ -51,14 +52,16 @@ def write_tsplib_full_matrix(path: Path, cost: np.ndarray, *, display_coords: Op
 
 def run_concorde(instance_filename: Path, solution_filename: Path) -> int:
     """Run Concorde and return parsed 'Number of bbnodes' if present, else -1."""
+    cwd = instance_filename.parent
     bb_nodes = -1
     try:
         result = subprocess.run(
-            ["concorde", "-o", str(solution_filename), str(instance_filename)],
+            ["concorde", "-o", solution_filename.name, instance_filename.name],
             check=True,
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            cwd=str(cwd),
         )
         match = re.search(r"Number of bbnodes:\s*(\d+)", result.stdout)
         if match:
@@ -105,6 +108,22 @@ def symmetrize(cost: np.ndarray, mode: SymmetrizeMode) -> np.ndarray:
     raise ValueError(f"Unknown symmetrize mode: {mode}")
 
 
+def _cleanup_concorde_artifacts(dir_path: Path, base_stub: str) -> None:
+    """Remove Concorde intermediate artifacts for an instance base name.
+
+    Concorde commonly writes `<base>.<ext>` and `O<base>.<ext>` into its working directory.
+    """
+    exts = (".pul", ".sav", ".res", ".mas", ".pix", ".sol", ".tsp")
+    for ext in exts:
+        for prefix in ("", "O"):
+            p = dir_path / f"{prefix}{base_stub}{ext}"
+            try:
+                if p.exists():
+                    p.unlink()
+            except Exception:
+                pass
+
+
 def tour_cost(cost: torch.Tensor, tour: torch.Tensor) -> torch.Tensor:
     # cost: [N,N], tour: [N]
     src = tour
@@ -127,9 +146,6 @@ def main(args: argparse.Namespace) -> None:
     num = b if args.max_instances is None else min(b, int(args.max_instances))
     print(f"Solving {num} instances of size N={n} with Concorde...")
 
-    scratch = run_path / "concorde_temp"
-    scratch.mkdir(parents=True, exist_ok=True)
-
     # simple display coords for Concorde tooling (optional)
     theta = np.linspace(0, 2 * np.pi, num=n, endpoint=False)
     display = np.stack([np.cos(theta), np.sin(theta)], axis=1).astype(np.float32)
@@ -138,24 +154,30 @@ def main(args: argparse.Namespace) -> None:
     rewards = torch.empty((num,), dtype=torch.float32)
     bb_nodes = torch.empty((num,), dtype=torch.long)
 
-    for i in range(num):
-        cm = cost_matrix[i].cpu().numpy().astype(np.float64, copy=False)
-        cm = symmetrize(cm, args.symmetrize)
-        cm[np.arange(n), np.arange(n)] = 0.0
-        tsp_path = scratch / f"instance_{i}.tsp"
-        sol_path = scratch / f"solution_{i}.sol"
-        write_tsplib_full_matrix(tsp_path, cm, display_coords=display)
+    with tempfile.TemporaryDirectory(prefix="concorde_", dir=str(run_path)) as tmp:
+        scratch = Path(tmp)
+        for i in range(num):
+            cm = cost_matrix[i].cpu().numpy().astype(np.float64, copy=False)
+            cm = symmetrize(cm, args.symmetrize)
+            cm[np.arange(n), np.arange(n)] = 0.0
+            tsp_path = scratch / f"instance_{i}.tsp"
+            sol_path = scratch / f"solution_{i}.sol"
+            write_tsplib_full_matrix(tsp_path, cm, display_coords=display)
 
-        bb = run_concorde(tsp_path, sol_path)
-        tour = read_solution_file(sol_path)
-        if len(tour) != n:
-            raise ValueError(f"Concorde returned tour length {len(tour)} for instance {i} (expected {n})")
+            bb = run_concorde(tsp_path, sol_path)
+            tour = read_solution_file(sol_path)
+            if len(tour) != n:
+                raise ValueError(f"Concorde returned tour length {len(tour)} for instance {i} (expected {n})")
 
-        tour_t = torch.tensor(tour, dtype=torch.long)
-        c = tour_cost(cost_matrix[i], tour_t).float()
-        actions[i] = tour_t
-        rewards[i] = -c
-        bb_nodes[i] = int(bb)
+            tour_t = torch.tensor(tour, dtype=torch.long)
+            c = tour_cost(cost_matrix[i], tour_t).float()
+            actions[i] = tour_t
+            rewards[i] = -c
+            bb_nodes[i] = int(bb)
+
+            # Concorde can emit intermediate artifacts; delete per-instance as we go.
+            _cleanup_concorde_artifacts(scratch, f"instance_{i}")
+            _cleanup_concorde_artifacts(scratch, f"solution_{i}")
 
     out = {
         "actions": [actions],
@@ -179,4 +201,3 @@ if __name__ == "__main__":
     p.add_argument("--max_instances", type=int, default=None)
     p.add_argument("--symmetrize", type=str, choices=["none", "min", "avg"], default="min")
     main(p.parse_args())
-
