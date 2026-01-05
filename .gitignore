@@ -20,6 +20,7 @@ Oinstance_*.res
 Oinstance_*.mas
 Oinstance_*.pix
 Oinstance_*.sol
+/data/osm_pools/
 /experiments/*
 !/experiments/what-if/
 /experiments/what-if/data/

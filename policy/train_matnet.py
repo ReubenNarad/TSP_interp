@@ -20,12 +20,25 @@ from rl4co.utils.trainer import RL4COTrainer
 from rl4co.models.zoo.matnet.policy import MatNetPolicy
 
 from env.seattle_atsp_generator import TSPLIBSubmatrixConfig, TSPLIBSubmatrixGenerator
+from env.pool_submatrix_generator import PoolSubmatrixConfig, PoolSubmatrixGenerator
 from policy.reinforce_clipped import REINFORCEClipped
 
 
 def main(args):
     # Environment / generator
-    if args.tsplib_path:
+    if args.tsplib_path and args.pool_dir:
+        raise ValueError("Only one of --tsplib_path or --pool_dir may be set.")
+
+    if args.pool_dir:
+        gen_cfg = PoolSubmatrixConfig(
+            pool_dir=args.pool_dir,
+            num_loc=args.num_loc,
+            seed=args.seed,
+            mmap=not args.pool_in_memory,
+        )
+        generator = PoolSubmatrixGenerator(**asdict(gen_cfg))
+        env = ATSPEnv(generator=generator)
+    elif args.tsplib_path:
         gen_cfg = TSPLIBSubmatrixConfig(
             tsp_path=args.tsplib_path,
             num_loc=args.num_loc,
@@ -45,8 +58,8 @@ def main(args):
         if torch.cuda.is_available()
         else "cpu"
     )
-    # If we are sampling from TSPLIB, also persist per-instance coords/indices for plotting later.
-    if args.tsplib_path:
+    # If we are sampling from TSPLIB or a pool, persist per-instance coords/indices for plotting later.
+    if args.tsplib_path or args.pool_dir:
         cm, idxs, coords = generator.sample_with_meta(int(args.num_val))
         # Save metadata for plotting/animation
         run_dir_preview = os.path.join("./runs", args.run_name)
@@ -205,6 +218,10 @@ if __name__ == "__main__":
     parser.add_argument("--tsplib_path", type=Path, default=None, help="Path to TSPLIB FULL_MATRIX instance to subsample.")
     parser.add_argument("--symmetrize", type=str, default="none", choices=["none", "min", "avg"])
     parser.add_argument("--seed", type=int, default=0)
+
+    # Pool-based sampling (precomputed KxK matrix)
+    parser.add_argument("--pool_dir", type=Path, default=None, help="Directory containing cost_matrix.npy + coords_lonlat.npy + node_ids.npy + meta.json.")
+    parser.add_argument("--pool_in_memory", action="store_true", help="Load pool cost matrix into RAM (default uses numpy memmap).")
 
     args = parser.parse_args()
     main(args)

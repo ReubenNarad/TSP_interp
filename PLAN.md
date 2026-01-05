@@ -67,7 +67,7 @@ Generalization strategy:
   - Ensure we use the pool’s original bbox and node_ids (not nearest-neighbor snapping) when available.
 
 ## 6) Deliverables
-- `scripts/build_seattle_pool.py` (or similar): creates pool nodes + memmap cost matrix + metadata.
+- `road_tsp/build_pool.py`: creates pool nodes + memmap cost matrix + metadata.
 - `env/pool_submatrix_generator.py`: samples `N` nodes from pool and returns `N×N` cost matrices.
 - Updated training script to use the pool generator.
 - Updated plotting/GIF pipeline to match the GEPA-style road-snapped visualization.
@@ -76,4 +76,3 @@ Generalization strategy:
 - Storage scales as `O(K^2)`: choose `K` based on disk/RAM budget; prefer memmap + quantization.
 - Directed travel times imply ATSP; Concorde baselines require symmetrization (or an ATSP solver).
 - Throughput depends on whether you do offline precompute (fast training) vs on-the-fly shortest paths (slow training).
-

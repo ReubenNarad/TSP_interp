@@ -101,6 +101,7 @@ def main(args):
     use_lonlat_axes = False
     osm_pbf = Path(args.pbf) if args.pbf else None
     tsplib_path = Path(config["tsplib_path"]) if "tsplib_path" in config and config["tsplib_path"] else None
+    pool_dir = Path(config["pool_dir"]) if "pool_dir" in config and config["pool_dir"] else None
     nodes_json_path = None
     nodes_payload = None
     if tsplib_path is not None:
@@ -111,6 +112,22 @@ def main(args):
                 nodes_payload = json.loads(candidate.read_text())
             except Exception:
                 nodes_payload = None
+
+    pool_meta = None
+    pool_node_ids = None
+    if pool_dir is not None:
+        meta_path = pool_dir / "meta.json"
+        node_ids_path = pool_dir / "node_ids.npy"
+        if meta_path.exists():
+            try:
+                pool_meta = json.loads(meta_path.read_text())
+            except Exception:
+                pool_meta = None
+        if node_ids_path.exists():
+            try:
+                pool_node_ids = np.load(node_ids_path)
+            except Exception:
+                pool_node_ids = None
 
     if coords_path.exists():
         coords = np.load(coords_path)  # [B,N,2] lon/lat
@@ -130,11 +147,19 @@ def main(args):
 
     if use_lonlat_axes and osm_pbf is not None:
         network_type = "driving"
-        if nodes_payload is not None and nodes_payload.get("network_type"):
+        if pool_meta is not None and pool_meta.get("network_type"):
+            network_type = str(pool_meta["network_type"])
+        elif nodes_payload is not None and nodes_payload.get("network_type"):
             network_type = str(nodes_payload["network_type"])
 
-        if nodes_payload is not None and nodes_payload.get("bbox") and len(nodes_payload["bbox"]) == 4:
-            lat_min_b, lat_max_b, lon_min_b, lon_max_b = [float(x) for x in nodes_payload["bbox"]]
+        bbox_src = None
+        if pool_meta is not None and pool_meta.get("bbox") and len(pool_meta["bbox"]) == 4:
+            bbox_src = pool_meta["bbox"]
+        elif nodes_payload is not None and nodes_payload.get("bbox") and len(nodes_payload["bbox"]) == 4:
+            bbox_src = nodes_payload["bbox"]
+
+        if bbox_src is not None:
+            lat_min_b, lat_max_b, lon_min_b, lon_max_b = [float(x) for x in bbox_src]
             lon_min, lon_max = lon_min_b - args.pad, lon_max_b + args.pad
             lat_min, lat_max = lat_min_b - args.pad, lat_max_b + args.pad
         else:
@@ -173,21 +198,25 @@ def main(args):
 
         city_to_graph = None
         val_indices_path = run_path / "val_indices.npy"
-        if nodes_payload is not None and val_indices_path.exists():
+        base_node_ids = None
+        if pool_node_ids is not None:
+            base_node_ids = pool_node_ids
+        elif nodes_payload is not None:
             base_node_ids = nodes_payload.get("node_ids")
-            if isinstance(base_node_ids, list):
-                idxs = np.load(val_indices_path)[args.plot_instance].astype(np.int64)
-                try:
-                    node_ids_sel = [int(base_node_ids[i]) for i in idxs.tolist()]
-                    mapped = []
-                    for nid in node_ids_sel:
-                        gi = snap_graph.id_to_idx.get(nid)
-                        mapped.append(int(gi) if gi is not None else -1)
-                    mapped = np.asarray(mapped, dtype=np.int64)
-                    if (mapped >= 0).all():
-                        city_to_graph = mapped
-                except Exception:
-                    city_to_graph = None
+
+        if base_node_ids is not None and val_indices_path.exists():
+            idxs = np.load(val_indices_path)[args.plot_instance].astype(np.int64)
+            try:
+                node_ids_sel = [int(base_node_ids[i]) for i in idxs.tolist()]
+                mapped = []
+                for nid in node_ids_sel:
+                    gi = snap_graph.id_to_idx.get(nid)
+                    mapped.append(int(gi) if gi is not None else -1)
+                mapped = np.asarray(mapped, dtype=np.int64)
+                if (mapped >= 0).all():
+                    city_to_graph = mapped
+            except Exception:
+                city_to_graph = None
 
         if city_to_graph is None:
             tree = cKDTree(snap_graph.coords_lonlat)

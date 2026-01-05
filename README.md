@@ -164,6 +164,40 @@ We ship a lightweight web viewer (FastAPI + vanilla JS) for exploring Cross-Laye
 
 Set `SEARCH_ROOT`, `HOST`, or `PORT` before launching to customize the server, or export `CLT_VIEWER_MANIFEST=/path/to/manifest.json` to load a single dataset.
 
+## Road-Network (OSM) TSP Pools
+
+This repo supports training on *non-Euclidean* road-network costs by precomputing a large `K×K` cost matrix once, then sampling `N×N` induced submatrices during training.
+
+Build a Seattle pool (time costs, symmetric):
+
+```bash
+python -m road_tsp.build_pool \
+  --pbf ../../GEPA_TSP/data/osm/Seattle.osm.pbf \
+  --bbox 47.58,47.64,-122.36,-122.30 \
+  --k 10000 \
+  --weight time \
+  --symmetrize min \
+  --sample_margin 0.002 \
+  --out_dir data/osm_pools/seattle_time_k10000_seed0
+```
+
+Train MatNet on `N=100` subproblems sampled from the pool:
+
+```bash
+python -m policy.train_matnet \
+  --run_name matnet_seattle_pool_n100 \
+  --pool_dir data/osm_pools/seattle_time_k10000_seed0 \
+  --num_loc 100
+```
+
+Render a sanity-check GIF with road-snapped paths (requires `--pbf`):
+
+```bash
+python -m policy.eval_matnet \
+  --run_name matnet_seattle_pool_n100 \
+  --pbf ../../GEPA_TSP/data/osm/Seattle.osm.pbf
+```
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
