@@ -20,26 +20,29 @@ POOL_DIR="${POOL_DIR:-data/osm_pools/seattle_time_k10000_seed0}"
 NUM_LOC="${NUM_LOC:-100}"
 SEED="${SEED:-0}"
 NUM_EPOCHS="${NUM_EPOCHS:-300}"
-NUM_INSTANCES="${NUM_INSTANCES:-10000}" # instances per epoch
+NUM_INSTANCES="${NUM_INSTANCES:-50000}" # instances per epoch
 NUM_VAL="${NUM_VAL:-512}"
 BATCH_SIZE="${BATCH_SIZE:-256}"
 NUM_WORKERS="${NUM_WORKERS:-0}"         # multi-workers were slower for pool slicing on this setup
-LOG_EVERY_N_STEPS="${LOG_EVERY_N_STEPS:-1}"
+LOG_EVERY_N_STEPS="${LOG_EVERY_N_STEPS:-200}"
+# Scaling the cost matrix improves MatNet numerical stability on real road-time costs.
+# This does not change the optimal tour (constant factor), and plotting scripts convert back to seconds.
+COST_SCALE="${COST_SCALE:-1000.0}"
 
 SAVE_RESULTS_EVERY="${SAVE_RESULTS_EVERY:-0}"
 RESULTS_EVAL_BS="${RESULTS_EVAL_BS:-64}"
 
 # Optim
 LR="${LR:-1e-4}"
-CHECKPOINT_FREQ="${CHECKPOINT_FREQ:-10}"
+CHECKPOINT_FREQ="${CHECKPOINT_FREQ:-25}"
 CLIP_VAL="${CLIP_VAL:-1.0}"
-LR_DECAY="${LR_DECAY:-cosine}"            # try "cosine" for long runs
+LR_DECAY="${LR_DECAY:-none}"            # try "cosine" for long runs
 MIN_LR="${MIN_LR:-1e-6}"
 EXP_GAMMA="${EXP_GAMMA:-}"              # optional (0<gamma<1) if LR_DECAY=exponential
 
 # MatNet architecture
 EMBED_DIM="${EMBED_DIM:-256}"
-N_ENCODER_LAYERS="${N_ENCODER_LAYERS:-5}"
+N_ENCODER_LAYERS="${N_ENCODER_LAYERS:-3}"
 NUM_HEADS="${NUM_HEADS:-8}"
 NORMALIZATION="${NORMALIZATION:-instance}"
 TANH_CLIPPING="${TANH_CLIPPING:-10.0}"
@@ -66,6 +69,9 @@ python -m policy.train_matnet \
   --batch_size "${BATCH_SIZE}" \
   --num_workers "${NUM_WORKERS}" \
   --log_every_n_steps "${LOG_EVERY_N_STEPS}" \
+  --cost_scale "${COST_SCALE}" \
+  --save_results_every "${SAVE_RESULTS_EVERY}" \
+  --results_eval_batch_size "${RESULTS_EVAL_BS}" \
   --seed "${SEED}" \
   --lr "${LR}" \
   --checkpoint_freq "${CHECKPOINT_FREQ}" \

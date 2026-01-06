@@ -73,9 +73,25 @@ def main(args: argparse.Namespace) -> None:
     metrics_csv = _latest_metrics_csv(run_dir)
     epochs, costs = _read_val_costs(metrics_csv, step=int(args.step))
 
+    # If training used cost scaling, convert plotted costs back to the original units.
+    cost_scale = 1.0
+    cfg_path = run_dir / "config.json"
+    if cfg_path.exists():
+        try:
+            import json
+
+            cfg = json.loads(cfg_path.read_text())
+            cost_scale = float(cfg.get("cost_scale", 1.0) or 1.0)
+        except Exception:
+            cost_scale = 1.0
+    if cost_scale != 1.0:
+        costs = costs * cost_scale
+
     baseline_cost = None
     if args.baseline is not None:
         baseline_cost = _load_baseline_cost(run_dir, args.baseline)
+        if cost_scale != 1.0:
+            baseline_cost = baseline_cost * cost_scale
 
     plt.figure(figsize=(8, 5))
     plt.plot(epochs, costs, marker="o", markersize=2, label="Avg Distance per Epoch")

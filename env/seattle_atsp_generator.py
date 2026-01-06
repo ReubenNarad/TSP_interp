@@ -31,6 +31,7 @@ class TSPLIBSubmatrixConfig:
     num_loc: int
     symmetrize: SymmetrizeMode = "none"
     seed: int = 0
+    cost_scale: float = 1.0
 
 
 class TSPLIBSubmatrixGenerator(Generator):
@@ -47,6 +48,7 @@ class TSPLIBSubmatrixGenerator(Generator):
         *,
         symmetrize: SymmetrizeMode = "none",
         seed: int = 0,
+        cost_scale: float = 1.0,
     ):
         super().__init__()
         self.tsp_path = Path(tsp_path)
@@ -58,6 +60,9 @@ class TSPLIBSubmatrixGenerator(Generator):
         self.max_dist = 1e9
         self.symmetrize = symmetrize
         self.seed = int(seed)
+        self.cost_scale = float(cost_scale)
+        if not (self.cost_scale > 0):
+            raise ValueError(f"cost_scale must be > 0, got {self.cost_scale}")
 
         self._rng = np.random.default_rng(self.seed)
         self._base_cost: Optional[np.ndarray] = None
@@ -103,6 +108,8 @@ class TSPLIBSubmatrixGenerator(Generator):
             idx = self._rng.choice(self._base_n, size=self.num_loc, replace=False)
             idxs[i] = idx
             sub = self._base_cost[np.ix_(idx, idx)].astype(np.float32, copy=False)
+            if self.cost_scale != 1.0:
+                sub = sub / self.cost_scale
             if self.symmetrize == "min":
                 sub = np.minimum(sub, sub.T)
             elif self.symmetrize == "avg":
@@ -129,6 +136,8 @@ class TSPLIBSubmatrixGenerator(Generator):
         for i in range(b):
             idx = self._rng.choice(self._base_n, size=self.num_loc, replace=False)
             sub = self._base_cost[np.ix_(idx, idx)].astype(np.float32, copy=False)
+            if self.cost_scale != 1.0:
+                sub = sub / self.cost_scale
             if self.symmetrize == "min":
                 sub = np.minimum(sub, sub.T)
             elif self.symmetrize == "avg":

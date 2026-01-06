@@ -96,6 +96,7 @@ def main(args):
     run_path = Path("runs") / args.run_name
     config = json.loads((run_path / "config.json").read_text())
     num_epochs = int(args.num_epochs) if args.num_epochs is not None else int(config.get("num_epochs", 0))
+    cost_scale = float(config.get("cost_scale", 1.0) or 1.0)
 
     coords_path = run_path / "val_coords_lonlat.npy"
     use_lonlat_axes = False
@@ -239,7 +240,7 @@ def main(args):
         res = pickle.load(open(res_path, "rb"))
         tour = np.asarray(res["actions"][args.plot_instance].cpu().numpy(), dtype=np.int64)
         reward = float(res["rewards"][args.plot_instance].item())
-        cost = -reward
+        cost = (-reward) * cost_scale
 
         title = f"Epoch {epoch} | tour cost: {cost:,.0f}"
 

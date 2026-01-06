@@ -28,6 +28,7 @@ class PoolSubmatrixConfig:
     num_loc: int
     seed: int = 0
     mmap: bool = True
+    cost_scale: float = 1.0
 
 
 class PoolSubmatrixGenerator(Generator):
@@ -38,12 +39,23 @@ class PoolSubmatrixGenerator(Generator):
     - Online: repeatedly sample size-`N` subsets and slice out `N×N` costs for ATSP/TSP training.
     """
 
-    def __init__(self, pool_dir: str | Path, num_loc: int, *, seed: int = 0, mmap: bool = True):
+    def __init__(
+        self,
+        pool_dir: str | Path,
+        num_loc: int,
+        *,
+        seed: int = 0,
+        mmap: bool = True,
+        cost_scale: float = 1.0,
+    ):
         super().__init__()
         self.pool_dir = Path(pool_dir)
         self.num_loc = int(num_loc)
         self.seed = int(seed)
         self.mmap = bool(mmap)
+        self.cost_scale = float(cost_scale)
+        if not (self.cost_scale > 0):
+            raise ValueError(f"cost_scale must be > 0, got {self.cost_scale}")
 
         # Required by RL4CO env specs; updated once pool is loaded.
         self.min_dist = 0.0
@@ -101,6 +113,8 @@ class PoolSubmatrixGenerator(Generator):
             self._pool.cost_matrix[idxs[:, :, None], idxs[:, None, :]],  # type: ignore[index]
             dtype=np.float32,
         )
+        if self.cost_scale != 1.0:
+            sub = sub / self.cost_scale
         diag = np.arange(self.num_loc, dtype=np.int64)
         sub[:, diag, diag] = 0.0
         coords = self._pool.coords_lonlat[idxs].astype(np.float32, copy=False)
@@ -123,6 +137,8 @@ class PoolSubmatrixGenerator(Generator):
             self._pool.cost_matrix[idxs[:, :, None], idxs[:, None, :]],  # type: ignore[index]
             dtype=np.float32,
         )
+        if self.cost_scale != 1.0:
+            mats = mats / self.cost_scale
         diag = np.arange(self.num_loc, dtype=np.int64)
         mats[:, diag, diag] = 0.0
         cost_matrix = torch.from_numpy(mats)

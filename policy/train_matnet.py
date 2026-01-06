@@ -35,6 +35,7 @@ def main(args):
             num_loc=args.num_loc,
             seed=args.seed,
             mmap=not args.pool_in_memory,
+            cost_scale=args.cost_scale,
         )
         generator = PoolSubmatrixGenerator(**asdict(gen_cfg))
         env = ATSPEnv(generator=generator)
@@ -44,6 +45,7 @@ def main(args):
             num_loc=args.num_loc,
             symmetrize=args.symmetrize,
             seed=args.seed,
+            cost_scale=args.cost_scale,
         )
         generator = TSPLIBSubmatrixGenerator(**asdict(gen_cfg))
         env = ATSPEnv(generator=generator)
@@ -269,6 +271,12 @@ if __name__ == "__main__":
     parser.add_argument("--tsplib_path", type=Path, default=None, help="Path to TSPLIB FULL_MATRIX instance to subsample.")
     parser.add_argument("--symmetrize", type=str, default="none", choices=["none", "min", "avg"])
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument(
+        "--cost_scale",
+        type=float,
+        default=1.0,
+        help="Divide the sampled cost_matrix by this constant for numerical stability (also scales rewards).",
+    )
 
     # Pool-based sampling (precomputed KxK matrix)
     parser.add_argument("--pool_dir", type=Path, default=None, help="Directory containing cost_matrix.npy + coords_lonlat.npy + node_ids.npy + meta.json.")

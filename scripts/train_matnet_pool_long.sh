@@ -23,6 +23,7 @@ NUM_VAL="${NUM_VAL:-256}"
 BATCH_SIZE="${BATCH_SIZE:-512}"
 NUM_WORKERS="${NUM_WORKERS:-4}"
 LOG_EVERY_N_STEPS="${LOG_EVERY_N_STEPS:-50}"
+COST_SCALE="${COST_SCALE:-1000.0}"
 
 # Optim
 LR="${LR:-1e-4}"
@@ -37,6 +38,8 @@ EMBED_DIM="${EMBED_DIM:-128}"
 N_ENCODER_LAYERS="${N_ENCODER_LAYERS:-5}"
 NUM_HEADS="${NUM_HEADS:-8}"
 NORMALIZATION="${NORMALIZATION:-instance}" # batch|instance|layer|none
+TANH_CLIPPING="${TANH_CLIPPING:-10.0}"
+TEMPERATURE="${TEMPERATURE:-1.0}"
 
 if [[ ! -d "${POOL_DIR}" ]]; then
   echo "ERROR: POOL_DIR does not exist: ${POOL_DIR}" >&2
@@ -60,6 +63,7 @@ python -m policy.train_matnet \
   --batch_size "${BATCH_SIZE}" \
   --num_workers "${NUM_WORKERS}" \
   --log_every_n_steps "${LOG_EVERY_N_STEPS}" \
+  --cost_scale "${COST_SCALE}" \
   --seed "${SEED}" \
   --lr "${LR}" \
   --checkpoint_freq "${CHECKPOINT_FREQ}" \
@@ -70,7 +74,9 @@ python -m policy.train_matnet \
   --embed_dim "${EMBED_DIM}" \
   --n_encoder_layers "${N_ENCODER_LAYERS}" \
   --num_heads "${NUM_HEADS}" \
-  --normalization "${NORMALIZATION}"
+  --normalization "${NORMALIZATION}" \
+  --tanh_clipping "${TANH_CLIPPING}" \
+  --temperature "${TEMPERATURE}"
 
 echo ""
 echo "Run saved to: runs/${RUN_NAME}"
