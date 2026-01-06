@@ -25,6 +25,9 @@ NUM_VAL="${NUM_VAL:-512}"
 BATCH_SIZE="${BATCH_SIZE:-256}"
 NUM_WORKERS="${NUM_WORKERS:-0}"         # multi-workers were slower for pool slicing on this setup
 LOG_EVERY_N_STEPS="${LOG_EVERY_N_STEPS:-200}"
+# Disable per-epoch greedy eval dumps by default (can OOM and isn't needed for train curves).
+SAVE_RESULTS_EVERY="${SAVE_RESULTS_EVERY:-0}"
+RESULTS_EVAL_BS="${RESULTS_EVAL_BS:-64}"
 
 # Optim
 LR="${LR:-1e-4}"
@@ -61,6 +64,8 @@ python -m policy.train_matnet \
   --batch_size "${BATCH_SIZE}" \
   --num_workers "${NUM_WORKERS}" \
   --log_every_n_steps "${LOG_EVERY_N_STEPS}" \
+  --save_results_every "${SAVE_RESULTS_EVERY}" \
+  --results_eval_batch_size "${RESULTS_EVAL_BS}" \
   --seed "${SEED}" \
   --lr "${LR}" \
   --checkpoint_freq "${CHECKPOINT_FREQ}" \
@@ -81,4 +86,3 @@ echo "Optional: generate train plot:"
 echo "  python -m policy.plot_train_curve --run_name ${RUN_NAME} --baseline baseline_concorde_128.pkl --step 1"
 echo "Optional: render sanity GIF:"
 echo "  python -m policy.eval_matnet --run_name ${RUN_NAME} --pbf ../../GEPA_TSP/data/osm/Seattle.osm.pbf --num_epochs ${NUM_EPOCHS} --step 10"
-

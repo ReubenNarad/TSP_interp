@@ -97,7 +97,19 @@ class REINFORCEClipped(REINFORCE):
             
         # Update weights
         opt.step()
-        
+
+        # Lightning may retain `training_step` returns; ensure we don't return tensors
+        # that keep the autograd graph alive (which can cause GPU memory blowups).
+        if isinstance(result, dict):
+            clean = {}
+            for k, v in result.items():
+                if isinstance(v, torch.Tensor):
+                    clean[k] = v.detach()
+                else:
+                    clean[k] = v
+            return clean
+        if isinstance(result, torch.Tensor):
+            return result.detach()
         return result
     
     def on_train_epoch_end(self):
