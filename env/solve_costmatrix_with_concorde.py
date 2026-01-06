@@ -17,7 +17,13 @@ import torch
 SymmetrizeMode = Literal["none", "min", "avg"]
 
 
-def write_tsplib_full_matrix(path: Path, cost: np.ndarray, *, display_coords: Optional[np.ndarray] = None) -> None:
+def write_tsplib_full_matrix(
+    path: Path,
+    cost: np.ndarray,
+    *,
+    display_coords: Optional[np.ndarray] = None,
+    scale_factor: float = 1.0,
+) -> None:
     """Write a symmetric FULL_MATRIX TSPLIB file.
 
     Concorde is a symmetric TSP solver; if `cost` is not symmetric, you must
@@ -31,7 +37,12 @@ def write_tsplib_full_matrix(path: Path, cost: np.ndarray, *, display_coords: Op
     mat = np.nan_to_num(mat, nan=1e12, posinf=1e12, neginf=1e12)
     mat[mat < 0] = 1e12
     np.fill_diagonal(mat, 0.0)
-    mat = np.rint(mat).astype(np.int64)
+    # Concorde expects integer weights. If the training pipeline used `cost_scale`
+    # (e.g. dividing road-time seconds by 1000 for stability), we must scale back
+    # up here to avoid rounding most edges to 0/1.
+    if not (scale_factor > 0):
+        scale_factor = 1.0
+    mat = np.rint(mat * float(scale_factor)).astype(np.int64)
 
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as f:
@@ -174,7 +185,7 @@ def main(args: argparse.Namespace) -> None:
             cm[np.arange(n), np.arange(n)] = 0.0
             tsp_path = scratch / f"instance_{i}.tsp"
             sol_path = scratch / f"solution_{i}.sol"
-            write_tsplib_full_matrix(tsp_path, cm, display_coords=display)
+            write_tsplib_full_matrix(tsp_path, cm, display_coords=display, scale_factor=cost_scale)
 
             bb = run_concorde(tsp_path, sol_path)
             tour = read_solution_file(sol_path)
