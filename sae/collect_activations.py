@@ -22,6 +22,7 @@ torch.load = _torch_load_with_weights
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from policy.policy_hooked import HookedAttentionModelPolicy
+from policy.matnet_hooked import EnhancedHookedMatNetPolicy
 from policy.reinforce_clipped import REINFORCEClipped
 
 class EnhancedHookedPolicy(HookedAttentionModelPolicy):
@@ -160,16 +161,36 @@ def collect_activations(args):
     
     print(f"Found {len(checkpoint_paths)} checkpoints to process.")
     
+    # Decide which hooked policy family to use based on the env/config.
+    # For our repo, MatNet runs use ATSPEnv and provide a cost_matrix (pool/tsplib).
+    is_matnet = (getattr(env, "name", None) == "atsp") and (
+        config.get("pool_dir") is not None or config.get("tsplib_path") is not None or config.get("env_name") == "atsp"
+    )
+
     # Process each checkpoint
     for cp_path in tqdm(checkpoint_paths):
-        # Create an enhanced policy model
-        policy = EnhancedHookedPolicy(
-            env_name=env.name,
-            embed_dim=config['embed_dim'],
-            num_encoder_layers=config['n_encoder_layers'],
-            num_heads=8,
-            temperature=config['temperature'],
-        )
+        # Create an enhanced policy model (AttentionModel or MatNet)
+        if is_matnet:
+            policy = EnhancedHookedMatNetPolicy(
+                env_name=env.name,
+                embed_dim=int(config["embed_dim"]),
+                num_encoder_layers=int(config["n_encoder_layers"]),
+                num_heads=int(config.get("num_heads", 8)),
+                normalization=str(config.get("normalization", "instance")),
+                use_graph_context=bool(config.get("use_graph_context", False)),
+                bias=bool(config.get("bias", False)),
+                init_embedding_mode=str(config.get("init_embedding_mode", "random_onehot")),
+                tanh_clipping=float(config.get("tanh_clipping", 10.0)),
+                temperature=float(config.get("temperature", 1.0)),
+            )
+        else:
+            policy = EnhancedHookedPolicy(
+                env_name=env.name,
+                embed_dim=config["embed_dim"],
+                num_encoder_layers=config["n_encoder_layers"],
+                num_heads=8,
+                temperature=config["temperature"],
+            )
         
         # Load checkpoint
         checkpoint_name = os.path.basename(cp_path)
@@ -186,6 +207,7 @@ def collect_activations(args):
         
         # Debug: print hook points for visualization
         print("\nHook attachment points:")
+        print(f"Policy:  {type(model.policy)}")
         print(f"Encoder: {type(model.policy.encoder)}")
         print(f"Decoder: {type(model.policy.decoder)}")
         
@@ -202,7 +224,12 @@ def collect_activations(args):
             current = min(chunk_size, remaining)
             data = env.reset(batch_size=[current]).to(device)
             if num_nodes is None:
-                num_nodes = data['locs'].shape[1]
+                if "locs" in data.keys(True, True):
+                    num_nodes = data["locs"].shape[1]
+                elif "cost_matrix" in data.keys(True, True):
+                    num_nodes = data["cost_matrix"].shape[1]
+                else:
+                    raise KeyError(f"Could not infer num_nodes from td keys: {list(data.keys(True, True))}")
             
             with torch.no_grad():
                 _ = policy(data, decode_type="greedy")
@@ -218,7 +245,7 @@ def collect_activations(args):
                     flat = tensor.reshape(-1, tensor.shape[-1]).cpu()
                     accumulated.setdefault(key, []).append(flat)
                 
-                if name.startswith('encoder_layer_') or name == 'encoder_output' or name == 'decoder_input':
+                if name.startswith('encoder_layer_') or name.startswith('encoder_output') or name == 'decoder_input':
                     if isinstance(activation, tuple):
                         if len(activation) == 2:
                             first_tensor = activation[0]
