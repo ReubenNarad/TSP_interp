@@ -19,8 +19,8 @@ POOL_DIR="${POOL_DIR:-data/osm_pools/seattle_time_k10000_seed0}"
 # Problem / data
 NUM_LOC="${NUM_LOC:-100}"
 SEED="${SEED:-0}"
-NUM_EPOCHS="${NUM_EPOCHS:-300}"
-NUM_INSTANCES="${NUM_INSTANCES:-50000}" # instances per epoch
+NUM_EPOCHS="${NUM_EPOCHS:-500}"
+NUM_INSTANCES="${NUM_INSTANCES:-20000}" # instances per epoch
 NUM_VAL="${NUM_VAL:-512}"
 BATCH_SIZE="${BATCH_SIZE:-256}"
 NUM_WORKERS="${NUM_WORKERS:-0}"         # multi-workers were slower for pool slicing on this setup
@@ -34,7 +34,7 @@ RESULTS_EVAL_BS="${RESULTS_EVAL_BS:-64}"
 
 # Optim
 LR="${LR:-1e-4}"
-CHECKPOINT_FREQ="${CHECKPOINT_FREQ:-25}"
+CHECKPOINT_FREQ="${CHECKPOINT_FREQ:-10}"
 CLIP_VAL="${CLIP_VAL:-1.0}"
 LR_DECAY="${LR_DECAY:-none}"            # try "cosine" for long runs
 MIN_LR="${MIN_LR:-1e-6}"

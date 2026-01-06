@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import pickle
 import re
@@ -137,6 +138,17 @@ def main(args: argparse.Namespace) -> None:
     if not val_td_path.exists():
         raise FileNotFoundError(f"Missing {val_td_path}")
 
+    cost_scale = 1.0
+    cfg_path = run_path / "config.json"
+    if cfg_path.exists():
+        try:
+            cfg = json.loads(cfg_path.read_text())
+            cost_scale = float(cfg.get("cost_scale", 1.0) or 1.0)
+        except Exception:
+            cost_scale = 1.0
+    if not (cost_scale > 0):
+        cost_scale = 1.0
+
     td = pickle.load(open(val_td_path, "rb"))
     if "cost_matrix" not in td:
         raise KeyError("val_td.pkl has no 'cost_matrix' key; this solver is for ATSP/cost-matrix runs.")
@@ -184,14 +196,22 @@ def main(args: argparse.Namespace) -> None:
         "rewards": [rewards],
         "bb_nodes": [bb_nodes],
         "symmetrize": args.symmetrize,
+        "cost_scale": cost_scale,
     }
     out_path = run_path / args.output_name
     with open(out_path, "wb") as f:
         pickle.dump(out, f)
 
-    avg_cost = (-rewards).mean().item()
+    avg_cost_scaled = (-rewards).mean().item()
+    avg_cost = avg_cost_scaled * cost_scale
     avg_nodes = bb_nodes[bb_nodes != -1].float().mean().item() if (bb_nodes != -1).any() else float("nan")
-    print(f"Wrote {out_path} | avg optimal cost: {avg_cost:.2f} | avg bbnodes: {avg_nodes:.1f}")
+    if cost_scale != 1.0:
+        print(
+            f"Wrote {out_path} | avg optimal cost: {avg_cost:.2f} (unscaled; cost_scale={cost_scale:g}, scaled={avg_cost_scaled:.4f})"
+            f" | avg bbnodes: {avg_nodes:.1f}"
+        )
+    else:
+        print(f"Wrote {out_path} | avg optimal cost: {avg_cost:.2f} | avg bbnodes: {avg_nodes:.1f}")
 
 
 if __name__ == "__main__":
