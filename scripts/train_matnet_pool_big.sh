@@ -20,28 +20,30 @@ POOL_DIR="${POOL_DIR:-data/osm_pools/seattle_time_k10000_seed0}"
 NUM_LOC="${NUM_LOC:-100}"
 SEED="${SEED:-0}"
 NUM_EPOCHS="${NUM_EPOCHS:-300}"
-NUM_INSTANCES="${NUM_INSTANCES:-50000}" # instances per epoch
+NUM_INSTANCES="${NUM_INSTANCES:-10000}" # instances per epoch
 NUM_VAL="${NUM_VAL:-512}"
 BATCH_SIZE="${BATCH_SIZE:-256}"
 NUM_WORKERS="${NUM_WORKERS:-0}"         # multi-workers were slower for pool slicing on this setup
-LOG_EVERY_N_STEPS="${LOG_EVERY_N_STEPS:-200}"
-# Disable per-epoch greedy eval dumps by default (can OOM and isn't needed for train curves).
+LOG_EVERY_N_STEPS="${LOG_EVERY_N_STEPS:-1}"
+
 SAVE_RESULTS_EVERY="${SAVE_RESULTS_EVERY:-0}"
 RESULTS_EVAL_BS="${RESULTS_EVAL_BS:-64}"
 
 # Optim
 LR="${LR:-1e-4}"
-CHECKPOINT_FREQ="${CHECKPOINT_FREQ:-25}"
+CHECKPOINT_FREQ="${CHECKPOINT_FREQ:-10}"
 CLIP_VAL="${CLIP_VAL:-1.0}"
-LR_DECAY="${LR_DECAY:-none}"            # try "cosine" for long runs
+LR_DECAY="${LR_DECAY:-cosine}"            # try "cosine" for long runs
 MIN_LR="${MIN_LR:-1e-6}"
 EXP_GAMMA="${EXP_GAMMA:-}"              # optional (0<gamma<1) if LR_DECAY=exponential
 
 # MatNet architecture
 EMBED_DIM="${EMBED_DIM:-256}"
-N_ENCODER_LAYERS="${N_ENCODER_LAYERS:-3}"
+N_ENCODER_LAYERS="${N_ENCODER_LAYERS:-5}"
 NUM_HEADS="${NUM_HEADS:-8}"
 NORMALIZATION="${NORMALIZATION:-instance}"
+TANH_CLIPPING="${TANH_CLIPPING:-10.0}"
+TEMPERATURE="${TEMPERATURE:-1.0}"
 
 if [[ ! -d "${POOL_DIR}" ]]; then
   echo "ERROR: POOL_DIR does not exist: ${POOL_DIR}" >&2
@@ -64,8 +66,6 @@ python -m policy.train_matnet \
   --batch_size "${BATCH_SIZE}" \
   --num_workers "${NUM_WORKERS}" \
   --log_every_n_steps "${LOG_EVERY_N_STEPS}" \
-  --save_results_every "${SAVE_RESULTS_EVERY}" \
-  --results_eval_batch_size "${RESULTS_EVAL_BS}" \
   --seed "${SEED}" \
   --lr "${LR}" \
   --checkpoint_freq "${CHECKPOINT_FREQ}" \
@@ -76,7 +76,9 @@ python -m policy.train_matnet \
   --embed_dim "${EMBED_DIM}" \
   --n_encoder_layers "${N_ENCODER_LAYERS}" \
   --num_heads "${NUM_HEADS}" \
-  --normalization "${NORMALIZATION}"
+  --normalization "${NORMALIZATION}" \
+  --tanh_clipping "${TANH_CLIPPING}" \
+  --temperature "${TEMPERATURE}"
 
 echo ""
 echo "Run saved to: runs/${RUN_NAME}"

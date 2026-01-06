@@ -84,6 +84,8 @@ def main(args):
         normalization=args.normalization,
         use_graph_context=args.use_graph_context,
         bias=args.bias,
+        tanh_clipping=args.tanh_clipping,
+        temperature=args.temperature,
     )
 
     model = REINFORCEClipped(
@@ -250,6 +252,18 @@ if __name__ == "__main__":
     parser.add_argument("--normalization", type=str, default="instance", choices=["batch", "instance", "layer", "none"])
     parser.add_argument("--use_graph_context", action="store_true")
     parser.add_argument("--bias", action="store_true")
+    parser.add_argument(
+        "--tanh_clipping",
+        type=float,
+        default=10.0,
+        help="Tanh clipping for decoder logits (stability; Attention Model commonly uses 10).",
+    )
+    parser.add_argument(
+        "--temperature",
+        type=float,
+        default=1.0,
+        help="Sampling temperature (train); keep at 1.0 unless you know why you want to change it.",
+    )
 
     # TSPLIB-based sampling
     parser.add_argument("--tsplib_path", type=Path, default=None, help="Path to TSPLIB FULL_MATRIX instance to subsample.")
