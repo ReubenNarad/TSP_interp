@@ -91,19 +91,20 @@ class PoolSubmatrixGenerator(Generator):
 
         k = int(self._pool.cost_matrix.shape[0])
         b = int(batch_size)
-        mats = np.empty((b, self.num_loc, self.num_loc), dtype=np.float32)
         idxs = np.empty((b, self.num_loc), dtype=np.int64)
-        coords = np.empty((b, self.num_loc, 2), dtype=np.float32)
-
         for i in range(b):
-            idx = self._rng.choice(k, size=self.num_loc, replace=False)
-            idxs[i] = idx
-            sub = np.asarray(self._pool.cost_matrix[np.ix_(idx, idx)], dtype=np.float32)
-            np.fill_diagonal(sub, 0.0)
-            mats[i] = sub
-            coords[i] = self._pool.coords_lonlat[idx].astype(np.float32, copy=False)
+            idxs[i] = self._rng.choice(k, size=self.num_loc, replace=False)
 
-        return torch.from_numpy(mats), idxs, coords
+        # Vectorized advanced indexing:
+        # sub[b,i,j] = cost[idxs[b,i], idxs[b,j]]  -> shape (B,N,N)
+        sub = np.asarray(
+            self._pool.cost_matrix[idxs[:, :, None], idxs[:, None, :]],  # type: ignore[index]
+            dtype=np.float32,
+        )
+        diag = np.arange(self.num_loc, dtype=np.int64)
+        sub[:, diag, diag] = 0.0
+        coords = self._pool.coords_lonlat[idxs].astype(np.float32, copy=False)
+        return torch.from_numpy(sub), idxs, coords
 
     def _generate(self, batch_size: Union[int, Sequence[int], torch.Size]) -> TensorDict:
         self._ensure_loaded()
@@ -114,13 +115,15 @@ class PoolSubmatrixGenerator(Generator):
             raise ValueError(f"batch_size must be positive, got {b}")
 
         k = int(self._pool.cost_matrix.shape[0])
-        mats = np.empty((b, self.num_loc, self.num_loc), dtype=np.float32)
+        idxs = np.empty((b, self.num_loc), dtype=np.int64)
         for i in range(b):
-            idx = self._rng.choice(k, size=self.num_loc, replace=False)
-            sub = np.asarray(self._pool.cost_matrix[np.ix_(idx, idx)], dtype=np.float32)
-            np.fill_diagonal(sub, 0.0)
-            mats[i] = sub
+            idxs[i] = self._rng.choice(k, size=self.num_loc, replace=False)
 
+        mats = np.asarray(
+            self._pool.cost_matrix[idxs[:, :, None], idxs[:, None, :]],  # type: ignore[index]
+            dtype=np.float32,
+        )
+        diag = np.arange(self.num_loc, dtype=np.int64)
+        mats[:, diag, diag] = 0.0
         cost_matrix = torch.from_numpy(mats)
         return TensorDict({"cost_matrix": cost_matrix}, batch_size=[b])
-
