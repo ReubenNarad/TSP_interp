@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 from scipy.spatial import cKDTree
+import torch
 
 from env.osm_tools_min import build_graph, largest_component, load_osm_network
 
@@ -143,7 +144,6 @@ def main(args):
     renders_dir = run_path / "renders_matnet"
     renders_dir.mkdir(parents=True, exist_ok=True)
 
-    images = []
     fig, ax = plt.subplots(figsize=(6, 6), dpi=140)
 
     if use_lonlat_axes and osm_pbf is not None:
@@ -230,31 +230,75 @@ def main(args):
         city_to_graph = None
         path_cache = None
 
+    # Decide whether to render from saved per-epoch results (preferred) or from checkpoints
+    # (for runs with --save_results_every 0).
+    result_epochs = []
+    for epoch in range(0, num_epochs, args.step):
+        if (results_dir / f"results_epoch_{epoch}.pkl").exists():
+            result_epochs.append(epoch)
+
+    use_checkpoints = not result_epochs
+    checkpoint_epochs: list[int] = []
+    if use_checkpoints:
+        ckpt_dir = run_path / "checkpoints"
+        if not ckpt_dir.exists():
+            raise RuntimeError(f"No results found under {results_dir} and missing checkpoints dir {ckpt_dir}")
+        for p in ckpt_dir.glob("checkpoint_epoch_*.ckpt"):
+            try:
+                e = int(p.stem.split("_")[-1])
+            except Exception:
+                continue
+            if args.num_epochs is not None and e > num_epochs:
+                continue
+            if int(args.step) > 1 and (e % int(args.step)) != 0:
+                continue
+            checkpoint_epochs.append(e)
+        checkpoint_epochs = sorted(set(checkpoint_epochs))
+        if not checkpoint_epochs:
+            raise RuntimeError(
+                f"No saved results found under {results_dir} and no checkpoint epochs matched step={args.step} under {ckpt_dir}"
+            )
+
+    # If rendering from checkpoints, set up policy/env and fixed validation instance.
+    policy = None
+    env = None
+    val_td = None
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    if use_checkpoints:
+        from policy.matnet_custom import MatNetPolicyCustom
+
+        env = pickle.load(open(run_path / "env.pkl", "rb"))
+        env.to(device)
+        val_td = pickle.load(open(run_path / "val_td.pkl", "rb"))
+        # single-instance batch
+        val_td = val_td[args.plot_instance : args.plot_instance + 1].to(device)
+
+        policy = MatNetPolicyCustom(
+            env_name=config.get("env_name", "atsp"),
+            embed_dim=int(config.get("embed_dim", 256)),
+            num_encoder_layers=int(config.get("n_encoder_layers", 3)),
+            num_heads=int(config.get("num_heads", 8)),
+            normalization=config.get("normalization", "instance"),
+            use_graph_context=bool(config.get("use_graph_context", False)),
+            bias=bool(config.get("bias", False)),
+            init_embedding_mode=str(config.get("init_embedding_mode", "random_onehot")),
+            tanh_clipping=float(config.get("tanh_clipping", 10.0)),
+            temperature=float(config.get("temperature", 1.0)),
+        ).to(device)
+
     prev_lines = []
     prev_start = None
 
-    for epoch in range(0, num_epochs, args.step):
-        res_path = results_dir / f"results_epoch_{epoch}.pkl"
-        if not res_path.exists():
-            continue
-        res = pickle.load(open(res_path, "rb"))
-        tour = np.asarray(res["actions"][args.plot_instance].cpu().numpy(), dtype=np.int64)
-        reward = float(res["rewards"][args.plot_instance].item())
+    # Optional: render Concorde baseline tour as a single PNG.
+    if args.plot_optimal:
+        baseline_path = run_path / args.baseline_file
+        if not baseline_path.exists():
+            raise FileNotFoundError(f"Baseline file not found: {baseline_path}")
+        baseline = pickle.load(open(baseline_path, "rb"))
+        tour = np.asarray(baseline["actions"][0][args.plot_instance].cpu().numpy(), dtype=np.int64)
+        reward = float(baseline["rewards"][0][args.plot_instance].item())
         cost = (-reward) * cost_scale
-
-        title = f"Epoch {epoch} | tour cost: {cost:,.0f}"
-
-        for ln in prev_lines:
-            try:
-                ln.remove()
-            except Exception:
-                pass
-        prev_lines = []
-        if prev_start is not None:
-            try:
-                prev_start.remove()
-            except Exception:
-                pass
+        title = f"Concorde optimal | tour cost: {cost:,.0f}"
 
         prev_lines, prev_start = render_tour(
             ax,
@@ -267,17 +311,81 @@ def main(args):
             city_to_graph=city_to_graph,
             path_cache=path_cache,
         )
-        out_png = renders_dir / f"epoch_{epoch:04d}_inst_{args.plot_instance}.png"
+        out_png = run_path / f"optimal_concorde_inst_{args.plot_instance}.png"
         fig.savefig(out_png, dpi=140, bbox_inches="tight")
-        images.append(imageio.imread(out_png))
-
-    plt.close(fig)
-
-    if not images:
-        raise RuntimeError(f"No frames rendered; check results in {results_dir}")
+        for ln in prev_lines:
+            try:
+                ln.remove()
+            except Exception:
+                pass
+        prev_lines = []
+        if prev_start is not None:
+            try:
+                prev_start.remove()
+            except Exception:
+                pass
+        prev_start = None
+        print(f"Wrote {out_png}")
 
     gif_path = run_path / f"animation_matnet_inst_{args.plot_instance}.gif"
-    imageio.mimsave(gif_path, images, fps=args.fps)
+    # Stream GIF creation to avoid holding all frames in RAM
+    with imageio.get_writer(gif_path, mode="I", fps=float(args.fps)) as writer:
+        epochs_to_render = checkpoint_epochs if use_checkpoints else result_epochs
+        for epoch in epochs_to_render:
+            if use_checkpoints:
+                ckpt_path = run_path / "checkpoints" / f"checkpoint_epoch_{epoch}.ckpt"
+                if not ckpt_path.exists():
+                    continue
+                # Load on CPU: some RL4CO checkpoint objects include RNG/env state that can
+                # fail to unpickle correctly when remapped to CUDA.
+                ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+                state = ckpt.get("state_dict", {})
+                policy_state = {k[len("policy.") :]: v for k, v in state.items() if k.startswith("policy.")}
+                policy.load_state_dict(policy_state, strict=True)
+                with torch.inference_mode():
+                    out = policy(val_td.clone(), env, phase="test", decode_type="greedy", return_actions=True)
+                tour = np.asarray(out["actions"][0].detach().cpu().numpy(), dtype=np.int64)
+                reward = float(out["reward"][0].detach().cpu().item())
+                cost = (-reward) * cost_scale
+                title = f"Epoch {epoch} | tour cost: {cost:,.0f}"
+            else:
+                res_path = results_dir / f"results_epoch_{epoch}.pkl"
+                if not res_path.exists():
+                    continue
+                res = pickle.load(open(res_path, "rb"))
+                tour = np.asarray(res["actions"][args.plot_instance].cpu().numpy(), dtype=np.int64)
+                reward = float(res["rewards"][args.plot_instance].item())
+                cost = (-reward) * cost_scale
+                title = f"Epoch {epoch} | tour cost: {cost:,.0f}"
+
+            for ln in prev_lines:
+                try:
+                    ln.remove()
+                except Exception:
+                    pass
+            prev_lines = []
+            if prev_start is not None:
+                try:
+                    prev_start.remove()
+                except Exception:
+                    pass
+
+            prev_lines, prev_start = render_tour(
+                ax,
+                coords_xy,
+                tour,
+                title=title,
+                use_lonlat_axes=use_lonlat_axes,
+                pad=args.pad,
+                snap_graph=snap_graph,
+                city_to_graph=city_to_graph,
+                path_cache=path_cache,
+            )
+            out_png = renders_dir / f"epoch_{epoch:04d}_inst_{args.plot_instance}.png"
+            fig.savefig(out_png, dpi=140, bbox_inches="tight")
+            writer.append_data(imageio.imread(out_png))
+
+    plt.close(fig)
     print(f"Wrote {gif_path}")
 
 
@@ -290,4 +398,11 @@ if __name__ == "__main__":
     p.add_argument("--step", type=int, default=1)
     p.add_argument("--pbf", type=str, default=None, help="Optional .osm.pbf file to draw roads behind lon/lat coords.")
     p.add_argument("--pad", type=float, default=0.005, help="Padding for lon/lat plot bbox.")
+    p.add_argument("--plot_optimal", action="store_true", help="Also render the Concorde baseline tour as a PNG.")
+    p.add_argument(
+        "--baseline_file",
+        type=str,
+        default="baseline_concorde_128.pkl",
+        help="Baseline pickle filename under the run dir to use for --plot_optimal.",
+    )
     main(p.parse_args())

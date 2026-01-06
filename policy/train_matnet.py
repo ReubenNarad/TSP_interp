@@ -17,7 +17,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from rl4co.envs.routing.atsp.env import ATSPEnv
 from rl4co.envs.routing.atsp.generator import ATSPGenerator
 from rl4co.utils.trainer import RL4COTrainer
-from rl4co.models.zoo.matnet.policy import MatNetPolicy
+from policy.matnet_custom import MatNetPolicyCustom
 
 from env.seattle_atsp_generator import TSPLIBSubmatrixConfig, TSPLIBSubmatrixGenerator
 from env.pool_submatrix_generator import PoolSubmatrixConfig, PoolSubmatrixGenerator
@@ -78,7 +78,7 @@ def main(args):
         val_td = env.reset(batch_size=[args.num_val]).to(device)
 
     # Policy / model
-    policy = MatNetPolicy(
+    policy = MatNetPolicyCustom(
         env_name=env.name,
         embed_dim=args.embed_dim,
         num_encoder_layers=args.n_encoder_layers,
@@ -86,6 +86,7 @@ def main(args):
         normalization=args.normalization,
         use_graph_context=args.use_graph_context,
         bias=args.bias,
+        init_embedding_mode=args.init_embedding_mode,
         tanh_clipping=args.tanh_clipping,
         temperature=args.temperature,
     )
@@ -254,6 +255,13 @@ if __name__ == "__main__":
     parser.add_argument("--normalization", type=str, default="instance", choices=["batch", "instance", "layer", "none"])
     parser.add_argument("--use_graph_context", action="store_true")
     parser.add_argument("--bias", action="store_true")
+    parser.add_argument(
+        "--init_embedding_mode",
+        type=str,
+        default="onehot",
+        choices=["onehot", "random_onehot", "random"],
+        help="MatNet init embedding. 'onehot' is deterministic (recommended for SAE/probing when node order is already randomized).",
+    )
     parser.add_argument(
         "--tanh_clipping",
         type=float,
