@@ -99,6 +99,8 @@ def main(args):
         lr_decay=args.lr_decay,
         min_lr=args.min_lr,
         exp_gamma=args.exp_gamma,
+        dataloader_num_workers=args.num_workers,
+        shuffle_train_dataloader=args.shuffle_train,
     )
 
     # Run dir / logging
@@ -174,6 +176,7 @@ def main(args):
         accelerator="auto",
         devices=1,
         precision=precision,
+        log_every_n_steps=args.log_every_n_steps,
         logger=CSVLogger(save_dir=run_dir, name="logs"),
         callbacks=[ResultsCallback(run_dir), CheckpointCallback(run_dir, args.checkpoint_freq)],
         gradient_clip_val=None,
@@ -200,6 +203,9 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--checkpoint_freq", type=int, default=5)
     parser.add_argument("--clip_val", type=float, default=1.0)
+    parser.add_argument("--num_workers", type=int, default=0, help="Dataloader workers for on-the-fly instance generation.")
+    parser.add_argument("--shuffle_train", action="store_true", help="Shuffle train dataloader (usually not needed for generated data).")
+    parser.add_argument("--log_every_n_steps", type=int, default=50, help="Lightning logging frequency (train).")
 
     parser.add_argument("--lr_decay", type=str, default="none", choices=["none", "cosine", "linear", "exponential"])
     parser.add_argument("--min_lr", type=float, default=1e-6)

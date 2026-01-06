@@ -1,6 +1,7 @@
 from typing import Union, Any
 import torch
 import torch.nn as nn
+from torch.utils.data import DataLoader
 
 from rl4co.models.rl.reinforce.reinforce import REINFORCE
 from rl4co.envs.common.base import RL4COEnvBase
@@ -48,6 +49,19 @@ class REINFORCEClipped(REINFORCE):
         self.automatic_optimization = False
         
         self.save_hyperparameters(logger=False)
+
+    def _dataloader_single(self, dataset, batch_size, shuffle=False):
+        """Override RL4CO DataLoader to enable persistent workers when num_workers > 0."""
+        num_workers = int(getattr(self, "dataloader_num_workers", 0) or 0)
+        return DataLoader(
+            dataset,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            num_workers=num_workers,
+            collate_fn=dataset.collate_fn,
+            persistent_workers=num_workers > 0,
+            pin_memory=torch.cuda.is_available(),
+        )
 
     def training_step(self, batch: Any, batch_idx: int):
         """Override training_step to add gradient clipping"""

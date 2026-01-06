@@ -21,6 +21,8 @@ NUM_EPOCHS="${NUM_EPOCHS:-200}"
 NUM_INSTANCES="${NUM_INSTANCES:-20000}" # instances per epoch (RL4CO: train_data_size)
 NUM_VAL="${NUM_VAL:-256}"
 BATCH_SIZE="${BATCH_SIZE:-512}"
+NUM_WORKERS="${NUM_WORKERS:-4}"
+LOG_EVERY_N_STEPS="${LOG_EVERY_N_STEPS:-50}"
 
 # Optim
 LR="${LR:-1e-4}"
@@ -56,6 +58,8 @@ python -m policy.train_matnet \
   --num_val "${NUM_VAL}" \
   --num_loc "${NUM_LOC}" \
   --batch_size "${BATCH_SIZE}" \
+  --num_workers "${NUM_WORKERS}" \
+  --log_every_n_steps "${LOG_EVERY_N_STEPS}" \
   --seed "${SEED}" \
   --lr "${LR}" \
   --checkpoint_freq "${CHECKPOINT_FREQ}" \
@@ -72,4 +76,3 @@ echo ""
 echo "Run saved to: runs/${RUN_NAME}"
 echo "To render a sanity GIF (road-snapped):"
 echo "  python -m policy.eval_matnet --run_name ${RUN_NAME} --pbf ../../GEPA_TSP/data/osm/Seattle.osm.pbf --num_epochs ${NUM_EPOCHS} --step 5"
-
