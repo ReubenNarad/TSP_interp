@@ -31,12 +31,17 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--model",
         type=str,
         default="linear",
-        choices=["linear", "mlp"],
+        choices=["linear", "mlp", "transformer"],
         help="Probe model family (default: linear).",
     )
     p.add_argument("--mlp_hidden_dim", type=int, default=256, help="Hidden dim for --model mlp.")
     p.add_argument("--mlp_layers", type=int, default=1, help="Number of hidden layers for --model mlp.")
     p.add_argument("--mlp_dropout", type=float, default=0.0, help="Dropout probability for --model mlp.")
+    p.add_argument("--tfm_dim", type=int, default=256, help="Model dim for --model transformer.")
+    p.add_argument("--tfm_layers", type=int, default=2, help="Number of Transformer encoder layers.")
+    p.add_argument("--tfm_heads", type=int, default=8, help="Number of attention heads for Transformer.")
+    p.add_argument("--tfm_ff_mult", type=int, default=4, help="FFN multiplier for Transformer (ff_dim = tfm_dim*mult).")
+    p.add_argument("--tfm_dropout", type=float, default=0.0, help="Dropout probability for Transformer.")
     p.add_argument(
         "--target",
         type=str,
@@ -184,32 +189,88 @@ def build_probe_model(
     mlp_hidden_dim: int,
     mlp_layers: int,
     mlp_dropout: float,
+    tfm_dim: int = 256,
+    tfm_layers: int = 2,
+    tfm_heads: int = 8,
+    tfm_ff_mult: int = 4,
+    tfm_dropout: float = 0.0,
 ) -> nn.Module:
     if model_type == "linear":
         return nn.Linear(int(input_dim), int(output_dim), bias=True)
-    if model_type != "mlp":
+    if model_type not in ("mlp", "transformer"):
         raise ValueError(f"Unknown model_type: {model_type}")
 
-    hidden_dim = int(mlp_hidden_dim)
-    if hidden_dim <= 0:
-        raise ValueError("--mlp_hidden_dim must be >= 1")
-    layers = int(mlp_layers)
-    if layers <= 0:
-        raise ValueError("--mlp_layers must be >= 1")
-    dropout = float(mlp_dropout)
-    if not (0.0 <= dropout < 1.0):
-        raise ValueError("--mlp_dropout must be in [0,1)")
+    if model_type == "mlp":
+        hidden_dim = int(mlp_hidden_dim)
+        if hidden_dim <= 0:
+            raise ValueError("--mlp_hidden_dim must be >= 1")
+        layers = int(mlp_layers)
+        if layers <= 0:
+            raise ValueError("--mlp_layers must be >= 1")
+        dropout = float(mlp_dropout)
+        if not (0.0 <= dropout < 1.0):
+            raise ValueError("--mlp_dropout must be in [0,1)")
 
-    parts: List[nn.Module] = []
-    in_dim = int(input_dim)
-    for _ in range(layers):
-        parts.append(nn.Linear(in_dim, hidden_dim, bias=True))
-        parts.append(nn.ReLU())
-        if dropout > 0.0:
-            parts.append(nn.Dropout(p=dropout))
-        in_dim = hidden_dim
-    parts.append(nn.Linear(in_dim, int(output_dim), bias=True))
-    return nn.Sequential(*parts)
+        parts: List[nn.Module] = []
+        in_dim = int(input_dim)
+        for _ in range(layers):
+            parts.append(nn.Linear(in_dim, hidden_dim, bias=True))
+            parts.append(nn.ReLU())
+            if dropout > 0.0:
+                parts.append(nn.Dropout(p=dropout))
+            in_dim = hidden_dim
+        parts.append(nn.Linear(in_dim, int(output_dim), bias=True))
+        return nn.Sequential(*parts)
+
+    # Transformer: set/sequence model over nodes. No positional embeddings -> permutation equivariant.
+    model_dim = int(tfm_dim)
+    if model_dim <= 0:
+        raise ValueError("--tfm_dim must be >= 1")
+    num_layers = int(tfm_layers)
+    if num_layers <= 0:
+        raise ValueError("--tfm_layers must be >= 1")
+    num_heads = int(tfm_heads)
+    if num_heads <= 0:
+        raise ValueError("--tfm_heads must be >= 1")
+    ff_mult = int(tfm_ff_mult)
+    if ff_mult <= 0:
+        raise ValueError("--tfm_ff_mult must be >= 1")
+    dropout = float(tfm_dropout)
+    if not (0.0 <= dropout < 1.0):
+        raise ValueError("--tfm_dropout must be in [0,1)")
+
+    class TransformerNodeScorer(nn.Module):
+        def __init__(self, in_dim: int, d_model: int, n_layers: int, n_heads: int, ff_mult: int, dropout: float):
+            super().__init__()
+            self.in_proj = nn.Identity() if in_dim == d_model else nn.Linear(in_dim, d_model, bias=True)
+            enc_layer = nn.TransformerEncoderLayer(
+                d_model=d_model,
+                nhead=n_heads,
+                dim_feedforward=d_model * ff_mult,
+                dropout=dropout,
+                activation="gelu",
+                batch_first=True,
+                norm_first=True,
+            )
+            self.encoder = nn.TransformerEncoder(enc_layer, num_layers=n_layers)
+            self.out = nn.Linear(d_model, int(output_dim), bias=True)
+
+        def forward(self, x: torch.Tensor, key_padding_mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+            h = self.in_proj(x)
+            if key_padding_mask is not None:
+                h = self.encoder(h, src_key_padding_mask=key_padding_mask)
+            else:
+                h = self.encoder(h)
+            return self.out(h)
+
+    return TransformerNodeScorer(
+        in_dim=int(input_dim),
+        d_model=model_dim,
+        n_layers=num_layers,
+        n_heads=num_heads,
+        ff_mult=ff_mult,
+        dropout=dropout,
+    )
 
 
 def _reshape_by_instance_node(
@@ -436,6 +497,11 @@ def train_best_node_ce(
     mlp_hidden_dim: int,
     mlp_layers: int,
     mlp_dropout: float,
+    tfm_dim: int,
+    tfm_layers: int,
+    tfm_heads: int,
+    tfm_ff_mult: int,
+    tfm_dropout: float,
     device: torch.device,
     batch_size_instances: int,
     lr: float,
@@ -489,6 +555,11 @@ def train_best_node_ce(
         mlp_hidden_dim=mlp_hidden_dim,
         mlp_layers=mlp_layers,
         mlp_dropout=mlp_dropout,
+        tfm_dim=tfm_dim,
+        tfm_layers=tfm_layers,
+        tfm_heads=tfm_heads,
+        tfm_ff_mult=tfm_ff_mult,
+        tfm_dropout=tfm_dropout,
     ).to(device)
     opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
 
@@ -518,7 +589,10 @@ def train_best_node_ce(
             vb = valid_inst[batch].to(device)
             yb = labels[batch].to(device)
 
-            logits = model(xb).squeeze(-1)  # [b,n]
+            if model_type == "transformer":
+                logits = model(xb, key_padding_mask=(~vb)).squeeze(-1)  # [b,n]
+            else:
+                logits = model(xb).squeeze(-1)  # [b,n]
             logits = logits.masked_fill(~vb, -1e9)
             loss = F.cross_entropy(logits, yb)
             if l1_lambda > 0:
@@ -537,7 +611,10 @@ def train_best_node_ce(
                 xb = X_inst[batch].to(device)
                 vb = valid_inst[batch].to(device)
                 yb = labels[batch].to(device)
-                logits = model(xb).squeeze(-1)
+                if model_type == "transformer":
+                    logits = model(xb, key_padding_mask=(~vb)).squeeze(-1)
+                else:
+                    logits = model(xb).squeeze(-1)
                 logits = logits.masked_fill(~vb, -1e9)
                 loss = float(F.cross_entropy(logits, yb).item())
                 bs = int(batch.numel())
@@ -567,7 +644,10 @@ def train_best_node_ce(
                 vb = valid_inst[batch].to(device)
                 yb = labels[batch].to(device)
 
-                logits = model(xb).squeeze(-1)
+                if model_type == "transformer":
+                    logits = model(xb, key_padding_mask=(~vb)).squeeze(-1)
+                else:
+                    logits = model(xb).squeeze(-1)
                 logits = logits.masked_fill(~vb, -1e9)
 
                 loss = float(F.cross_entropy(logits, yb).item())
@@ -659,6 +739,8 @@ def main() -> None:
     objective = str(args.objective)
     if objective != "regression" and target == "both":
         raise ValueError("--objective best_node_ce requires a scalar --target (length or time), not both")
+    if objective == "regression" and str(args.model) == "transformer":
+        raise ValueError("--model transformer is only supported for --objective best_node_ce")
 
     print(f"[train] objective: {objective}")
     print(f"[train] target: {target} ({', '.join(target_names)})")
@@ -693,6 +775,11 @@ def main() -> None:
         "mlp_hidden_dim": int(args.mlp_hidden_dim),
         "mlp_layers": int(args.mlp_layers),
         "mlp_dropout": float(args.mlp_dropout),
+        "tfm_dim": int(args.tfm_dim),
+        "tfm_layers": int(args.tfm_layers),
+        "tfm_heads": int(args.tfm_heads),
+        "tfm_ff_mult": int(args.tfm_ff_mult),
+        "tfm_dropout": float(args.tfm_dropout),
         "batch_size": int(args.batch_size),
         "lr": float(args.lr),
         "weight_decay": float(args.weight_decay),
@@ -801,6 +888,11 @@ def main() -> None:
                 mlp_hidden_dim=int(args.mlp_hidden_dim),
                 mlp_layers=int(args.mlp_layers),
                 mlp_dropout=float(args.mlp_dropout),
+                tfm_dim=int(args.tfm_dim),
+                tfm_layers=int(args.tfm_layers),
+                tfm_heads=int(args.tfm_heads),
+                tfm_ff_mult=int(args.tfm_ff_mult),
+                tfm_dropout=float(args.tfm_dropout),
                 device=device,
                 batch_size_instances=int(args.batch_size),
                 lr=float(args.lr),
@@ -822,6 +914,11 @@ def main() -> None:
                     "mlp_hidden_dim": int(args.mlp_hidden_dim),
                     "mlp_layers": int(args.mlp_layers),
                     "mlp_dropout": float(args.mlp_dropout),
+                    "tfm_dim": int(args.tfm_dim),
+                    "tfm_layers": int(args.tfm_layers),
+                    "tfm_heads": int(args.tfm_heads),
+                    "tfm_ff_mult": int(args.tfm_ff_mult),
+                    "tfm_dropout": float(args.tfm_dropout),
                     "input_key": key,
                     "target": target,
                     "target_names": target_names,
