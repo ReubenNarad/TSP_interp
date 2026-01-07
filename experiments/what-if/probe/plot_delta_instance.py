@@ -436,7 +436,8 @@ def main() -> None:
         vmax=args.vmax,
         alpha=0.95,
         zorder=5,
-        edgecolors="none",
+        edgecolors="white",
+        linewidths=0.6,
     )
     if best_idx is not None:
         ax.scatter(
