@@ -55,6 +55,13 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--batch_size", type=int, default=32, help="Number of instances per forward pass.")
     p.add_argument("--device", type=str, default=None, help="Device string, e.g. cuda, cpu.")
     p.add_argument("--out_path", type=str, default=None, help="Output .pt path (default: <data_dir>/probe_reps.pt)")
+    p.add_argument(
+        "--matnet_init_embedding_mode",
+        type=str,
+        default=None,
+        choices=["random_onehot", "random", "onehot"],
+        help="Override MatNet init embedding mode during extraction (useful to remove injected randomness).",
+    )
 
     p.add_argument("--compute_sae", action="store_true", help="Also compute SAE latents for each node.")
     p.add_argument(
@@ -205,6 +212,30 @@ def main() -> None:
     info, policy = load_env_and_policy(run_dir=run_dir, device=device)
     env = info["env"]
 
+    if args.matnet_init_embedding_mode is not None:
+        try:
+            from policy.matnet_custom import DeterministicOneHotMatNetInitEmbedding
+            from rl4co.models.nn.env_embeddings.init import MatNetInitEmbedding
+        except Exception as e:
+            raise RuntimeError(f"Failed to import MatNet init embedding utilities: {e}") from e
+
+        if getattr(env, "name", None) != "atsp":
+            raise ValueError("--matnet_init_embedding_mode is only valid for MatNet/ATSP runs")
+
+        mode = str(args.matnet_init_embedding_mode)
+        if not hasattr(policy, "encoder") or not hasattr(policy.encoder, "init_embedding"):
+            raise ValueError("Loaded policy does not appear to be MatNet (missing encoder.init_embedding)")
+
+        embed_dim = int(info["config"].get("embed_dim", 256))
+        if mode == "onehot":
+            policy.encoder.init_embedding = DeterministicOneHotMatNetInitEmbedding(embed_dim=embed_dim).to(device)
+        elif mode == "random":
+            policy.encoder.init_embedding = MatNetInitEmbedding(embed_dim=embed_dim, mode="Random").to(device)
+        elif mode == "random_onehot":
+            policy.encoder.init_embedding = MatNetInitEmbedding(embed_dim=embed_dim, mode="RandomOneHot").to(device)
+        else:
+            raise ValueError(f"Unknown --matnet_init_embedding_mode: {mode}")
+
     activation_keys = None
     if args.activation_keys:
         activation_keys = [k.strip() for k in str(args.activation_keys).split(",") if k.strip()]
@@ -315,6 +346,7 @@ def main() -> None:
             "sae_dir": str(sae_dir) if sae_dir is not None else None,
             "sae_cfg": sae_cfg,
             "sae_dtype": str(args.sae_dtype),
+            "matnet_init_embedding_mode": str(args.matnet_init_embedding_mode) if args.matnet_init_embedding_mode else None,
             "label_names": ["delta_length_pct", "delta_time_pct"],
         },
         "y_names": ["delta_length_pct", "delta_time_pct"],
