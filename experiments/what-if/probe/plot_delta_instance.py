@@ -8,6 +8,7 @@ import pickle
 import re
 import subprocess
 import tempfile
+import math
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
@@ -426,24 +427,40 @@ def main() -> None:
         city_to_graph = _map_cities_to_graph(run_dir, snap_graph, val_indices, coords)
         _plot_tour_snapped(ax, coords, tour, snap_graph, city_to_graph, zorder=3)
 
+    base_s = 24
+    outline_extra = 1.8  # points; renders an outside-only outline without shrinking the filled marker
+    outline_s = (math.sqrt(base_s) + outline_extra) ** 2
+
+    # Black "halo" underneath, then the colored marker on top (gives an outside-only outline).
+    ax.scatter(
+        coords[:, 0],
+        coords[:, 1],
+        c="black",
+        s=outline_s,
+        alpha=0.95,
+        zorder=4.8,
+        edgecolors="none",
+    )
+
     sc = ax.scatter(
         coords[:, 0],
         coords[:, 1],
         c=scores,
-        s=24,
+        s=base_s,
         cmap="viridis",
         vmin=args.vmin,
         vmax=args.vmax,
         alpha=0.95,
         zorder=5,
-        edgecolors="white",
-        linewidths=0.6,
+        edgecolors="none",
     )
     if best_idx is not None:
+        ring_extra = 4.5  # additional points beyond the node outline
+        ring_s = (math.sqrt(base_s) + outline_extra + ring_extra) ** 2
         ax.scatter(
             [coords[best_idx, 0]],
             [coords[best_idx, 1]],
-            s=90,
+            s=ring_s,
             facecolors="none",
             edgecolors="red",
             linewidths=2.0,
