@@ -280,7 +280,15 @@ def _map_cities_to_graph(run_dir: Path, snap_graph, instance_indices: Optional[n
     return idxs.astype(np.int64)
 
 
-def _plot_tour_snapped(ax, coords: np.ndarray, tour: np.ndarray, snap_graph, city_to_graph: np.ndarray) -> None:
+def _plot_tour_snapped(
+    ax,
+    coords: np.ndarray,
+    tour: np.ndarray,
+    snap_graph,
+    city_to_graph: np.ndarray,
+    *,
+    zorder: float = 4,
+) -> None:
     import networkit as nk  # type: ignore
 
     g = snap_graph.g
@@ -301,7 +309,7 @@ def _plot_tour_snapped(ax, coords: np.ndarray, tour: np.ndarray, snap_graph, cit
             else:
                 poly = coords_lonlat[np.asarray(path_idx, dtype=int)]
             path_cache[key] = poly
-        ax.plot(poly[:, 0], poly[:, 1], color="tab:red", linewidth=1.1, alpha=0.85, zorder=4)
+        ax.plot(poly[:, 0], poly[:, 1], color="tab:red", linewidth=1.1, alpha=0.85, zorder=zorder)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -416,7 +424,7 @@ def main() -> None:
     if tour is not None and pbf is not None and run_dir is not None:
         snap_graph, _edges_df = _build_snap_graph(pbf, bbox)
         city_to_graph = _map_cities_to_graph(run_dir, snap_graph, val_indices, coords)
-        _plot_tour_snapped(ax, coords, tour, snap_graph, city_to_graph)
+        _plot_tour_snapped(ax, coords, tour, snap_graph, city_to_graph, zorder=3)
 
     sc = ax.scatter(
         coords[:, 0],
@@ -427,7 +435,7 @@ def main() -> None:
         vmin=args.vmin,
         vmax=args.vmax,
         alpha=0.95,
-        zorder=3,
+        zorder=5,
         edgecolors="none",
     )
     if best_idx is not None:
@@ -438,7 +446,7 @@ def main() -> None:
             facecolors="none",
             edgecolors="red",
             linewidths=2.0,
-            zorder=4,
+            zorder=6,
             label=f"best node (idx={best_idx}, {best_val:.3f}%)",
         )
 
