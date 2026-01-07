@@ -9,6 +9,7 @@ from torchrl.data import Composite
 
 from clt.model import CrossLayerTranscoder
 from policy.reinforce_clipped import REINFORCEClipped
+from policy.matnet_hooked import EnhancedHookedMatNetPolicy
 from sae.collect_activations import EnhancedHookedPolicy
 
 
@@ -55,7 +56,15 @@ def patch_env_specs(env) -> None:
             _patch(spec)
 
 
-def load_env_and_policy(run_dir: Path, device: torch.device) -> Tuple[Dict, EnhancedHookedPolicy]:
+def _is_matnet_run(env, config: Dict) -> bool:
+    if config.get("env_name") == "atsp":
+        return True
+    if getattr(env, "name", None) == "atsp" and (config.get("pool_dir") or config.get("tsplib_path")):
+        return True
+    return False
+
+
+def load_env_and_policy(run_dir: Path, device: torch.device):
     env_path = run_dir / "env.pkl"
     config_path = run_dir / "config.json"
 
@@ -81,15 +90,29 @@ def load_env_and_policy(run_dir: Path, device: torch.device) -> Tuple[Dict, Enha
         key=lambda p: int(p.stem.split("checkpoint_epoch_")[1]),
     )
 
-    policy = EnhancedHookedPolicy(
-        env_name=env.name,
-        embed_dim=config["embed_dim"],
-        num_encoder_layers=config["n_encoder_layers"],
-        num_heads=8,
-        temperature=config["temperature"],
-        dropout=config.get("dropout", 0.0),
-        attention_dropout=config.get("attention_dropout", 0.0),
-    )
+    if _is_matnet_run(env, config):
+        policy = EnhancedHookedMatNetPolicy(
+            env_name=env.name,
+            embed_dim=int(config["embed_dim"]),
+            num_encoder_layers=int(config["n_encoder_layers"]),
+            num_heads=int(config.get("num_heads", 8)),
+            normalization=str(config.get("normalization", "instance")),
+            use_graph_context=bool(config.get("use_graph_context", False)),
+            bias=bool(config.get("bias", False)),
+            init_embedding_mode=str(config.get("init_embedding_mode", "random_onehot")),
+            tanh_clipping=float(config.get("tanh_clipping", 10.0)),
+            temperature=float(config.get("temperature", 1.0)),
+        )
+    else:
+        policy = EnhancedHookedPolicy(
+            env_name=env.name,
+            embed_dim=config["embed_dim"],
+            num_encoder_layers=config["n_encoder_layers"],
+            num_heads=8,
+            temperature=config["temperature"],
+            dropout=config.get("dropout", 0.0),
+            attention_dropout=config.get("attention_dropout", 0.0),
+        )
 
     model = REINFORCEClipped.load_from_checkpoint(
         latest,

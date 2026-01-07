@@ -126,13 +126,30 @@ echo "[long-run] Probe obj:    ${PROBE_OBJECTIVE}"
 echo "[long-run] Probe model:  ${PROBE_MODEL}"
 
 # 1) Collect dataset
+COLLECT_SH="${REPO_ROOT}/experiments/what-if/collect_dataset.sh"
+if [[ -f "${RUN_DIR}/config.json" ]]; then
+  ENV_NAME="$("${PYTHON}" - "${RUN_DIR}/config.json" 2>/dev/null <<'PY' || true
+import json, sys
+cfg_path = sys.argv[1]
+try:
+  cfg = json.load(open(cfg_path, "r"))
+  print(cfg.get("env_name", ""))
+except Exception:
+  print("")
+PY
+)"
+  if [[ "${ENV_NAME}" == "atsp" ]]; then
+    COLLECT_SH="${REPO_ROOT}/experiments/what-if/collect_dataset_costmatrix.sh"
+  fi
+fi
+
 SEED="${SEED}" \
 CONCORDE_TIMEOUT_SEC="${CONCORDE_TIMEOUT_SEC}" \
 OVERWRITE="${OVERWRITE}" \
 DO_MERGE=1 \
 DO_SUMMARY=1 \
 TAG="${TAG}" \
-bash "${REPO_ROOT}/experiments/what-if/collect_dataset.sh" "${RUN_DIR}" "${NUM_INSTANCES}" "${NUM_SHARDS}"
+bash "${COLLECT_SH}" "${RUN_DIR}" "${NUM_INSTANCES}" "${NUM_SHARDS}"
 
 # 2) Validate invariants (length should never increase)
 "${PYTHON}" "${REPO_ROOT}/experiments/what-if/collect/validate_dataset.py" --data_dir "${DATA_DIR}"

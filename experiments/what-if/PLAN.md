@@ -7,6 +7,7 @@ All generated datasets / artifacts live under `experiments/what-if/data/` and ar
 ## Pipeline (implemented)
 
 1) **Collect Concorde what-if dataset** (sharded): `collect/collect_dataset.py`  
+   - For MatNet / ATSP cost-matrix runs (e.g. Seattle road-time pools), use: `collect/collect_dataset_costmatrix.py`
 2) **Merge + summarize**: `collect/merge_shards.py`, `collect/summarize_dataset.py`  
 3) **Validate invariants** (monotonicity): `collect/validate_dataset.py`  
 4) **Extract per-node representations** from the policy (and optional SAE latents): `probe/extract_representations.py`  
@@ -14,6 +15,7 @@ All generated datasets / artifacts live under `experiments/what-if/data/` and ar
 
 Bash entrypoints:
 - `collect_dataset.sh`: collect → merge → summarize
+- `collect_dataset_costmatrix.sh`: collect → merge → summarize (for MatNet / ATSP cost matrices)
 - `long_run.sh`: collect → validate → extract → train
 
 ## Correctness note: why we saw “removing a node increases length”
@@ -35,6 +37,7 @@ Merged dataset: `experiments/what-if/data/processed/<dataset_id>/dataset.pt`
 
 Key tensors (shapes for `B` instances, `n` nodes):
 - `locs`: `[B, n, 2]` float32
+- `cost_matrix`: `[B, n, n]` float32 (present for ATSP / MatNet datasets)
 - `base_length`: `[B]` float32
 - `minus_length`: `[B, n]` float32
 - `delta_length_pct`: `[B, n]` float32  (`100*(base-minus)/base`)
@@ -57,6 +60,12 @@ Collect only:
 
 ```bash
 bash experiments/what-if/collect_dataset.sh runs/<run_name> 200 10
+```
+
+Collect only (MatNet / ATSP cost matrices):
+
+```bash
+bash experiments/what-if/collect_dataset_costmatrix.sh runs/<run_name> 200 10
 ```
 
 Full pipeline (collect → validate → extract → train):

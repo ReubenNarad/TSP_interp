@@ -174,6 +174,15 @@ def main() -> None:
     if not torch.is_tensor(locs) or locs.ndim != 3 or locs.shape[2] != 2:
         raise ValueError("dataset.pt missing 'locs' tensor with shape [B,n,2]")
 
+    cost_matrix = ds.get("cost_matrix")
+    if cost_matrix is not None:
+        if not torch.is_tensor(cost_matrix) or cost_matrix.ndim != 3:
+            raise ValueError("dataset.pt has 'cost_matrix' but it's not a tensor with shape [B,n,n]")
+        if cost_matrix.shape[0] != locs.shape[0] or cost_matrix.shape[1] != locs.shape[1] or cost_matrix.shape[2] != locs.shape[1]:
+            raise ValueError(
+                f"dataset.pt has inconsistent shapes: locs={tuple(locs.shape)} cost_matrix={tuple(cost_matrix.shape)}"
+            )
+
     valid_base = ds.get("valid_base")
     valid_minus = ds.get("valid_minus")
     delta_length_pct = ds.get("delta_length_pct")
@@ -229,10 +238,20 @@ def main() -> None:
             current = end - offset
 
             locs_batch = locs[offset:end].to(torch.float32)
-            td = env.reset(batch_size=[current]).to(device)
-            td["locs"] = locs_batch.to(device)
 
-            policy.clear_cache()
+            if cost_matrix is not None:
+                from tensordict import TensorDict
+
+                cm_batch = cost_matrix[offset:end].to(torch.float32).to(device)
+                td = env.reset(td=TensorDict({"cost_matrix": cm_batch}, batch_size=[int(current)])).to(device)
+            else:
+                td = env.reset(batch_size=[current]).to(device)
+
+            if "locs" in td.keys(True, True):
+                td["locs"] = locs_batch.to(device)
+
+            if hasattr(policy, "clear_cache"):
+                policy.clear_cache()
             _ = policy.encoder(td)
 
             act_parts = []
