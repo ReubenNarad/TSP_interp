@@ -53,8 +53,25 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--objective",
         type=str,
         default="regression",
-        choices=["regression", "best_node_ce"],
-        help="Training objective. regression predicts target values; best_node_ce classifies the best node per instance.",
+        choices=["regression", "best_node_ce", "soft_ce", "pairwise_rank"],
+        help=(
+            "Training objective. regression predicts target values; best_node_ce classifies the best node per instance; "
+            "soft_ce uses a softmax over target values as a distributional target; "
+            "pairwise_rank uses a sampled pairwise ranking loss within each instance."
+        ),
+    )
+    p.add_argument("--soft_ce_tau", type=float, default=1.0, help="Temperature for --objective soft_ce (higher = softer).")
+    p.add_argument(
+        "--pairwise_pairs_per_instance",
+        type=int,
+        default=128,
+        help="Pairs per instance for --objective pairwise_rank (default: 128).",
+    )
+    p.add_argument(
+        "--pairwise_margin",
+        type=float,
+        default=0.0,
+        help="Optional margin: ignore pairs with |delta_i-delta_j| < margin (default: 0).",
     )
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--device", type=str, default=None, help="Device string, e.g. cuda, cpu.")
@@ -71,6 +88,16 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--train_frac", type=float, default=0.8)
     p.add_argument("--val_frac", type=float, default=0.1)
     p.add_argument("--standardize_x", action="store_true", help="Standardize X using train-set mean/std.")
+    p.add_argument(
+        "--instance_standardize_x",
+        action="store_true",
+        help="Standardize X per instance using per-feature mean/std over nodes (helps remove pool-specific fingerprints).",
+    )
+    p.add_argument(
+        "--node_standardize_x",
+        action="store_true",
+        help="Standardize X per node using mean/std over features (layernorm-like).",
+    )
     return p
 
 
@@ -493,6 +520,10 @@ def train_best_node_ce(
     y_inst: torch.Tensor,
     valid_inst: torch.Tensor,
     splits: SplitMasks,
+    objective: str,
+    soft_ce_tau: float,
+    pairwise_pairs_per_instance: int,
+    pairwise_margin: float,
     model_type: str,
     mlp_hidden_dim: int,
     mlp_layers: int,
@@ -509,6 +540,8 @@ def train_best_node_ce(
     num_epochs: int,
     l1_lambda: float,
     standardize_x: bool,
+    instance_standardize_x: bool,
+    node_standardize_x: bool,
     seed: int,
 ) -> Tuple[nn.Module, Dict]:
     if y_inst.ndim != 2:
@@ -523,6 +556,19 @@ def train_best_node_ce(
         raise ValueError(f"y_inst shape mismatch: expected {(B, n)}, got {tuple(y_inst.shape)}")
     if valid_inst.shape != (B, n):
         raise ValueError(f"valid_inst shape mismatch: expected {(B, n)}, got {tuple(valid_inst.shape)}")
+
+    objective = str(objective)
+    if objective not in ("best_node_ce", "soft_ce", "pairwise_rank"):
+        raise ValueError(f"Unsupported objective for best-node training: {objective}")
+    soft_ce_tau = float(soft_ce_tau)
+    if objective == "soft_ce" and not (soft_ce_tau > 0):
+        raise ValueError("--soft_ce_tau must be > 0 for --objective soft_ce")
+    pairwise_pairs_per_instance = int(pairwise_pairs_per_instance)
+    if objective == "pairwise_rank" and pairwise_pairs_per_instance <= 0:
+        raise ValueError("--pairwise_pairs_per_instance must be >= 1 for --objective pairwise_rank")
+    pairwise_margin = float(pairwise_margin)
+    if objective == "pairwise_rank" and pairwise_margin < 0:
+        raise ValueError("--pairwise_margin must be >= 0 for --objective pairwise_rank")
 
     # Label = argmax over valid nodes of the scalar target.
     y_masked = y_inst.clone()
@@ -540,6 +586,21 @@ def train_best_node_ce(
     y_inst = y_inst.to(torch.float32)
     valid_inst = valid_inst.to(torch.bool)
     labels = labels.to(torch.int64)
+
+    if node_standardize_x:
+        mean = X_inst.mean(dim=2, keepdim=True)
+        std = X_inst.std(dim=2, keepdim=True, unbiased=False).clamp_min(1e-6)
+        X_inst = (X_inst - mean) / std
+
+    if instance_standardize_x:
+        # Per-instance per-feature normalization over nodes.
+        # This is intended to remove pool-node identity shortcuts that rely on absolute feature scales.
+        m = valid_inst.to(torch.float32).unsqueeze(-1)  # [B,n,1]
+        denom = m.sum(dim=1, keepdim=True).clamp_min(1.0)
+        mean = (X_inst * m).sum(dim=1, keepdim=True) / denom
+        var = ((X_inst - mean) * m).pow(2).sum(dim=1, keepdim=True) / denom
+        std = var.sqrt().clamp_min(1e-6)
+        X_inst = (X_inst - mean) / std
 
     x_mean = x_std = None
     if standardize_x:
@@ -579,6 +640,46 @@ def train_best_node_ce(
     best_val = float("inf")
     best_state = None
 
+    def _batch_loss(logits: torch.Tensor, vb: torch.Tensor, yb_hard: torch.Tensor, yb_soft: torch.Tensor) -> torch.Tensor:
+        logits = logits.masked_fill(~vb, -1e9)
+        if objective == "best_node_ce":
+            return F.cross_entropy(logits, yb_hard)
+
+        # soft_ce: target distribution derived from target values.
+        if objective == "soft_ce":
+            tgt = yb_soft.masked_fill(~vb, float("-inf"))
+            tgt = tgt / soft_ce_tau
+            tgt = tgt - tgt.max(dim=1, keepdim=True).values
+            tgt_probs = torch.softmax(tgt, dim=1)
+            logp = torch.log_softmax(logits, dim=1)
+            return -(tgt_probs * logp).sum(dim=1).mean()
+
+        # pairwise_rank: sample node pairs and train on ordering.
+        # Target = 1 if y_i > y_j, else 0; loss = BCE(logit_i - logit_j).
+        bsz, nnodes = logits.shape
+        i_idx = torch.randint(0, nnodes, (bsz, pairwise_pairs_per_instance), device=logits.device)
+        j_idx = torch.randint(0, nnodes, (bsz, pairwise_pairs_per_instance), device=logits.device)
+        # ensure i != j
+        j_idx = torch.where(j_idx == i_idx, (j_idx + 1) % nnodes, j_idx)
+
+        vi = vb.gather(1, i_idx)
+        vj = vb.gather(1, j_idx)
+        vpair = vi & vj
+
+        yi = yb_soft.gather(1, i_idx)
+        yj = yb_soft.gather(1, j_idx)
+        if pairwise_margin > 0:
+            vpair = vpair & ((yi - yj).abs() >= pairwise_margin)
+
+        li = logits.gather(1, i_idx)
+        lj = logits.gather(1, j_idx)
+        diff = li - lj
+        target = (yi > yj).to(diff.dtype)
+        loss = F.binary_cross_entropy_with_logits(diff, target, reduction="none")
+        loss = loss.masked_fill(~vpair, 0.0)
+        denom = vpair.to(diff.dtype).sum().clamp_min(1.0)
+        return loss.sum() / denom
+
     g = torch.Generator().manual_seed(int(seed))
     for _epoch in range(int(num_epochs)):
         model.train()
@@ -587,14 +688,14 @@ def train_best_node_ce(
             batch = perm[start : start + batch_size_instances]
             xb = X_inst[batch].to(device)
             vb = valid_inst[batch].to(device)
-            yb = labels[batch].to(device)
+            yb_hard = labels[batch].to(device)
+            yb_soft = y_inst[batch].to(device)
 
             if model_type == "transformer":
                 logits = model(xb, key_padding_mask=(~vb)).squeeze(-1)  # [b,n]
             else:
                 logits = model(xb).squeeze(-1)  # [b,n]
-            logits = logits.masked_fill(~vb, -1e9)
-            loss = F.cross_entropy(logits, yb)
+            loss = _batch_loss(logits, vb, yb_hard, yb_soft)
             if l1_lambda > 0:
                 l1_pen = sum(p.abs().sum() for p in model.parameters())
                 loss = loss + l1_lambda * l1_pen
@@ -610,13 +711,13 @@ def train_best_node_ce(
                 batch = val_idx[start : start + batch_size_instances]
                 xb = X_inst[batch].to(device)
                 vb = valid_inst[batch].to(device)
-                yb = labels[batch].to(device)
+                yb_hard = labels[batch].to(device)
+                yb_soft = y_inst[batch].to(device)
                 if model_type == "transformer":
                     logits = model(xb, key_padding_mask=(~vb)).squeeze(-1)
                 else:
                     logits = model(xb).squeeze(-1)
-                logits = logits.masked_fill(~vb, -1e9)
-                loss = float(F.cross_entropy(logits, yb).item())
+                loss = float(_batch_loss(logits, vb, yb_hard, yb_soft).item())
                 bs = int(batch.numel())
                 val_loss_sum += loss * bs
                 val_total += bs
@@ -650,7 +751,17 @@ def train_best_node_ce(
                     logits = model(xb).squeeze(-1)
                 logits = logits.masked_fill(~vb, -1e9)
 
-                loss = float(F.cross_entropy(logits, yb).item())
+                if objective == "best_node_ce":
+                    loss = float(F.cross_entropy(logits, yb).item())
+                elif objective == "soft_ce":
+                    tgt = y_inst[batch].to(device).masked_fill(~vb, float("-inf"))
+                    tgt = tgt / soft_ce_tau
+                    tgt = tgt - tgt.max(dim=1, keepdim=True).values
+                    tgt_probs = torch.softmax(tgt, dim=1)
+                    logp = torch.log_softmax(logits, dim=1)
+                    loss = float((-(tgt_probs * logp).sum(dim=1).mean()).item())
+                else:
+                    loss = float(_batch_loss(logits, vb, yb, y_inst[batch].to(device)).item())
                 bs = int(batch.numel())
                 loss_sum += loss * bs
                 total += bs
@@ -695,6 +806,12 @@ def train_best_node_ce(
         "x_mean": x_mean.tolist() if x_mean is not None else None,
         "x_std": x_std.tolist() if x_std is not None else None,
         "best_val_loss": float(best_val),
+        "objective": objective,
+        "soft_ce_tau": float(soft_ce_tau) if objective == "soft_ce" else None,
+        "pairwise_pairs_per_instance": int(pairwise_pairs_per_instance) if objective == "pairwise_rank" else None,
+        "pairwise_margin": float(pairwise_margin) if objective == "pairwise_rank" else None,
+        "instance_standardize_x": bool(instance_standardize_x),
+        "node_standardize_x": bool(node_standardize_x),
         "train": _eval(train_idx),
         "val": _eval(val_idx),
         "test": _eval(test_idx),
@@ -738,9 +855,9 @@ def main() -> None:
 
     objective = str(args.objective)
     if objective != "regression" and target == "both":
-        raise ValueError("--objective best_node_ce requires a scalar --target (length or time), not both")
+        raise ValueError("--objective best_node_ce/soft_ce/pairwise_rank requires a scalar --target (length or time), not both")
     if objective == "regression" and str(args.model) == "transformer":
-        raise ValueError("--model transformer is only supported for --objective best_node_ce")
+        raise ValueError("--model transformer is only supported for non-regression objectives")
 
     print(f"[train] objective: {objective}")
     print(f"[train] target: {target} ({', '.join(target_names)})")
@@ -771,6 +888,9 @@ def main() -> None:
         "target": target,
         "target_names": target_names,
         "objective": objective,
+        "soft_ce_tau": float(args.soft_ce_tau),
+        "pairwise_pairs_per_instance": int(args.pairwise_pairs_per_instance),
+        "pairwise_margin": float(args.pairwise_margin),
         "model": str(args.model),
         "mlp_hidden_dim": int(args.mlp_hidden_dim),
         "mlp_layers": int(args.mlp_layers),
@@ -786,6 +906,8 @@ def main() -> None:
         "num_epochs": int(args.num_epochs),
         "l1_lambda": float(args.l1_lambda),
         "standardize_x": bool(args.standardize_x),
+        "instance_standardize_x": bool(args.instance_standardize_x),
+        "node_standardize_x": bool(args.node_standardize_x),
         "train_frac": float(args.train_frac),
         "val_frac": float(args.val_frac),
         "meta": meta,
@@ -861,7 +983,7 @@ def main() -> None:
             print(f"[train] wrote model: {model_path}")
             return
 
-        if objective == "best_node_ce":
+        if objective in ("best_node_ce", "soft_ce", "pairwise_rank"):
             X_inst, y_inst, valid_inst = _reshape_by_instance_node(
                 X=X,
                 y=y,
@@ -884,6 +1006,10 @@ def main() -> None:
                 y_inst=y_inst,
                 valid_inst=valid_inst,
                 splits=splits_inst,
+                objective=objective,
+                soft_ce_tau=float(args.soft_ce_tau),
+                pairwise_pairs_per_instance=int(args.pairwise_pairs_per_instance),
+                pairwise_margin=float(args.pairwise_margin),
                 model_type=str(args.model),
                 mlp_hidden_dim=int(args.mlp_hidden_dim),
                 mlp_layers=int(args.mlp_layers),
@@ -900,6 +1026,8 @@ def main() -> None:
                 num_epochs=int(args.num_epochs),
                 l1_lambda=float(args.l1_lambda),
                 standardize_x=bool(args.standardize_x),
+                instance_standardize_x=bool(args.instance_standardize_x),
+                node_standardize_x=bool(args.node_standardize_x),
                 seed=int(args.seed),
             )
 
@@ -919,11 +1047,16 @@ def main() -> None:
                     "tfm_heads": int(args.tfm_heads),
                     "tfm_ff_mult": int(args.tfm_ff_mult),
                     "tfm_dropout": float(args.tfm_dropout),
+                    "soft_ce_tau": float(args.soft_ce_tau),
+                    "pairwise_pairs_per_instance": int(args.pairwise_pairs_per_instance),
+                    "pairwise_margin": float(args.pairwise_margin),
                     "input_key": key,
                     "target": target,
                     "target_names": target_names,
                     "x_mean": results.get("x_mean"),
                     "x_std": results.get("x_std"),
+                    "instance_standardize_x": bool(args.instance_standardize_x),
+                    "node_standardize_x": bool(args.node_standardize_x),
                     "meta": meta,
                 },
                 model_path,
