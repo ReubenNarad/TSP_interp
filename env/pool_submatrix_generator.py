@@ -29,6 +29,9 @@ class PoolSubmatrixConfig:
     seed: int = 0
     mmap: bool = True
     cost_scale: float = 1.0
+    bbox_jitter: bool = False
+    bbox_window_frac: float = 1.0
+    bbox_max_tries: int = 50
 
 
 class PoolSubmatrixGenerator(Generator):
@@ -47,6 +50,9 @@ class PoolSubmatrixGenerator(Generator):
         seed: int = 0,
         mmap: bool = True,
         cost_scale: float = 1.0,
+        bbox_jitter: bool = False,
+        bbox_window_frac: float = 1.0,
+        bbox_max_tries: int = 50,
     ):
         super().__init__()
         self.pool_dir = Path(pool_dir)
@@ -54,8 +60,15 @@ class PoolSubmatrixGenerator(Generator):
         self.seed = int(seed)
         self.mmap = bool(mmap)
         self.cost_scale = float(cost_scale)
+        self.bbox_jitter = bool(bbox_jitter)
+        self.bbox_window_frac = float(bbox_window_frac)
+        self.bbox_max_tries = int(bbox_max_tries)
         if not (self.cost_scale > 0):
             raise ValueError(f"cost_scale must be > 0, got {self.cost_scale}")
+        if not (0.0 < self.bbox_window_frac <= 1.0):
+            raise ValueError(f"bbox_window_frac must be in (0,1], got {self.bbox_window_frac}")
+        if self.bbox_max_tries <= 0:
+            raise ValueError(f"bbox_max_tries must be > 0, got {self.bbox_max_tries}")
 
         # Required by RL4CO env specs; updated once pool is loaded.
         self.min_dist = 0.0
@@ -63,11 +76,13 @@ class PoolSubmatrixGenerator(Generator):
 
         self._rng = np.random.default_rng(self.seed)
         self._pool: Optional[RoadTSPPool] = None
+        self._bbox_lonlat: Optional[tuple[float, float, float, float]] = None  # (lon_min, lon_max, lat_min, lat_max)
 
     def __getstate__(self):
         state = dict(self.__dict__)
         # Avoid pickling large memmaps into env.pkl; reload lazily from pool_dir.
         state["_pool"] = None
+        state["_bbox_lonlat"] = None
         return state
 
     def _ensure_loaded(self) -> None:
@@ -94,18 +109,63 @@ class PoolSubmatrixGenerator(Generator):
             self.min_dist = float(np.min(finite))
             self.max_dist = float(np.max(finite))
 
+        # Pool bbox from coords (lon/lat)
+        coords = np.asarray(pool.coords_lonlat, dtype=np.float32)
+        lon_min = float(np.min(coords[:, 0]))
+        lon_max = float(np.max(coords[:, 0]))
+        lat_min = float(np.min(coords[:, 1]))
+        lat_max = float(np.max(coords[:, 1]))
+        self._bbox_lonlat = (lon_min, lon_max, lat_min, lat_max)
+
         self._pool = pool
+
+    def _sample_indices(self, b: int) -> np.ndarray:
+        """Return idxs with shape (B, N) of pool indices."""
+        assert self._pool is not None
+        k = int(self._pool.cost_matrix.shape[0])
+
+        if not self.bbox_jitter or self.bbox_window_frac >= 1.0:
+            idxs = np.empty((b, self.num_loc), dtype=np.int64)
+            for i in range(b):
+                idxs[i] = self._rng.choice(k, size=self.num_loc, replace=False)
+            return idxs
+
+        assert self._bbox_lonlat is not None
+        lon_min, lon_max, lat_min, lat_max = self._bbox_lonlat
+        lon_span = max(lon_max - lon_min, 1e-9)
+        lat_span = max(lat_max - lat_min, 1e-9)
+        win_lon = lon_span * self.bbox_window_frac
+        win_lat = lat_span * self.bbox_window_frac
+        lon0_max = lon_max - win_lon
+        lat0_max = lat_max - win_lat
+
+        coords = np.asarray(self._pool.coords_lonlat, dtype=np.float32)
+        idxs = np.empty((b, self.num_loc), dtype=np.int64)
+        for bi in range(b):
+            chosen = None
+            for _ in range(self.bbox_max_tries):
+                lon0 = float(self._rng.uniform(lon_min, lon0_max))
+                lat0 = float(self._rng.uniform(lat_min, lat0_max))
+                lon1 = lon0 + win_lon
+                lat1 = lat0 + win_lat
+                mask = (coords[:, 0] >= lon0) & (coords[:, 0] <= lon1) & (coords[:, 1] >= lat0) & (coords[:, 1] <= lat1)
+                candidates = np.nonzero(mask)[0]
+                if candidates.size >= self.num_loc:
+                    chosen = self._rng.choice(candidates, size=self.num_loc, replace=False)
+                    break
+            if chosen is None:
+                # Fallback: uniform over whole pool (avoid rare failures when window is too small / sparse).
+                chosen = self._rng.choice(k, size=self.num_loc, replace=False)
+            idxs[bi] = chosen
+        return idxs
 
     def sample_with_meta(self, batch_size: int) -> tuple[torch.Tensor, np.ndarray, np.ndarray]:
         """Sample a batch and also return selected pool indices and lon/lat coords."""
         self._ensure_loaded()
         assert self._pool is not None
 
-        k = int(self._pool.cost_matrix.shape[0])
         b = int(batch_size)
-        idxs = np.empty((b, self.num_loc), dtype=np.int64)
-        for i in range(b):
-            idxs[i] = self._rng.choice(k, size=self.num_loc, replace=False)
+        idxs = self._sample_indices(b)
 
         # Vectorized advanced indexing:
         # sub[b,i,j] = cost[idxs[b,i], idxs[b,j]]  -> shape (B,N,N)
@@ -128,10 +188,7 @@ class PoolSubmatrixGenerator(Generator):
         if b <= 0:
             raise ValueError(f"batch_size must be positive, got {b}")
 
-        k = int(self._pool.cost_matrix.shape[0])
-        idxs = np.empty((b, self.num_loc), dtype=np.int64)
-        for i in range(b):
-            idxs[i] = self._rng.choice(k, size=self.num_loc, replace=False)
+        idxs = self._sample_indices(b)
 
         mats = np.asarray(
             self._pool.cost_matrix[idxs[:, :, None], idxs[:, None, :]],  # type: ignore[index]

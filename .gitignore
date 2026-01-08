@@ -38,3 +38,6 @@ scripts/local_uniform/
 .env
 .venv/
 wandb/
+
+# Local agent instructions (provided by harness; do not commit)
+AGENTS.md

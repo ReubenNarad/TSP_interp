@@ -36,6 +36,9 @@ def main(args):
             seed=args.seed,
             mmap=not args.pool_in_memory,
             cost_scale=args.cost_scale,
+            bbox_jitter=args.pool_bbox_jitter,
+            bbox_window_frac=args.pool_bbox_window_frac,
+            bbox_max_tries=args.pool_bbox_max_tries,
         )
         generator = PoolSubmatrixGenerator(**asdict(gen_cfg))
         env = ATSPEnv(generator=generator)
@@ -289,6 +292,23 @@ if __name__ == "__main__":
     # Pool-based sampling (precomputed KxK matrix)
     parser.add_argument("--pool_dir", type=Path, default=None, help="Directory containing cost_matrix.npy + coords_lonlat.npy + node_ids.npy + meta.json.")
     parser.add_argument("--pool_in_memory", action="store_true", help="Load pool cost matrix into RAM (default uses numpy memmap).")
+    parser.add_argument(
+        "--pool_bbox_jitter",
+        action="store_true",
+        help="When sampling from a pool, crop a random lon/lat window each instance and sample cities only within it.",
+    )
+    parser.add_argument(
+        "--pool_bbox_window_frac",
+        type=float,
+        default=0.5,
+        help="Window size as a fraction of the pool bbox (0<frac<=1). Only used with --pool_bbox_jitter.",
+    )
+    parser.add_argument(
+        "--pool_bbox_max_tries",
+        type=int,
+        default=50,
+        help="Max resampling attempts to find a window with >=N candidates (fallbacks to uniform on failure).",
+    )
 
     args = parser.parse_args()
     main(args)
