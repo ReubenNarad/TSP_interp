@@ -79,7 +79,7 @@ def main(run_path: str, fps: float, batch_size: int = 4, num_instances: int = 5)
             env_name=env.name,
             embed_dim=config['embed_dim'],
             num_encoder_layers=config['n_encoder_layers'],
-            num_heads=8,
+            num_heads=int(config.get("num_heads", 8)),
             temperature=config['temperature'],
         ).to(device)
         

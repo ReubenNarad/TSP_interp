@@ -54,7 +54,7 @@ def build_untrained_policy(env: TSPEnv, config: Dict[str, Any], device: torch.de
         env_name=env.name,
         embed_dim=int(config.get("embed_dim", 256)),
         num_encoder_layers=int(config.get("n_encoder_layers", 5)),
-        num_heads=8,
+        num_heads=int(config.get("num_heads", 8)),
         temperature=float(config.get("temperature", 1.0)),
         dropout=float(config.get("dropout", 0.0)),
         attention_dropout=float(config.get("attention_dropout", 0.0)),
@@ -229,4 +229,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

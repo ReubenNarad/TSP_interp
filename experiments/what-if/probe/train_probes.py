@@ -98,6 +98,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Standardize X per node using mean/std over features (layernorm-like).",
     )
+    p.add_argument(
+        "--save_models",
+        action="store_true",
+        help="Also write model checkpoint(s) to out_dir (default: metrics-only).",
+    )
     return p
 
 
@@ -960,27 +965,28 @@ def main() -> None:
             results.setdefault("test", {})["ranking"] = test_rank
             results_all[tag] = results
 
-            model_path = out_dir / f"{str(args.model)}_{tag}.pt"
-            torch.save(
-                {
-                    "model_state_dict": {k: v.detach().cpu() for k, v in model.state_dict().items()},
-                    "objective": objective,
-                    "model": str(args.model),
-                    "mlp_hidden_dim": int(args.mlp_hidden_dim),
-                    "mlp_layers": int(args.mlp_layers),
-                    "mlp_dropout": float(args.mlp_dropout),
-                    "input_key": key,
-                    "target": target,
-                    "target_names": target_names,
-                    "y_mean": results["y_mean"],
-                    "y_std": results["y_std"],
-                    "x_mean": results.get("x_mean"),
-                    "x_std": results.get("x_std"),
-                    "meta": meta,
-                },
-                model_path,
-            )
-            print(f"[train] wrote model: {model_path}")
+            if bool(args.save_models):
+                model_path = out_dir / f"{str(args.model)}_{tag}.pt"
+                torch.save(
+                    {
+                        "model_state_dict": {k: v.detach().cpu() for k, v in model.state_dict().items()},
+                        "objective": objective,
+                        "model": str(args.model),
+                        "mlp_hidden_dim": int(args.mlp_hidden_dim),
+                        "mlp_layers": int(args.mlp_layers),
+                        "mlp_dropout": float(args.mlp_dropout),
+                        "input_key": key,
+                        "target": target,
+                        "target_names": target_names,
+                        "y_mean": results["y_mean"],
+                        "y_std": results["y_std"],
+                        "x_mean": results.get("x_mean"),
+                        "x_std": results.get("x_std"),
+                        "meta": meta,
+                    },
+                    model_path,
+                )
+                print(f"[train] wrote model: {model_path}")
             return
 
         if objective in ("best_node_ce", "soft_ce", "pairwise_rank"):
@@ -1033,35 +1039,36 @@ def main() -> None:
 
             results_all[tag] = results
 
-            model_path = out_dir / f"{str(args.model)}_{tag}.pt"
-            torch.save(
-                {
-                    "model_state_dict": {k: v.detach().cpu() for k, v in model.state_dict().items()},
-                    "objective": objective,
-                    "model": str(args.model),
-                    "mlp_hidden_dim": int(args.mlp_hidden_dim),
-                    "mlp_layers": int(args.mlp_layers),
-                    "mlp_dropout": float(args.mlp_dropout),
-                    "tfm_dim": int(args.tfm_dim),
-                    "tfm_layers": int(args.tfm_layers),
-                    "tfm_heads": int(args.tfm_heads),
-                    "tfm_ff_mult": int(args.tfm_ff_mult),
-                    "tfm_dropout": float(args.tfm_dropout),
-                    "soft_ce_tau": float(args.soft_ce_tau),
-                    "pairwise_pairs_per_instance": int(args.pairwise_pairs_per_instance),
-                    "pairwise_margin": float(args.pairwise_margin),
-                    "input_key": key,
-                    "target": target,
-                    "target_names": target_names,
-                    "x_mean": results.get("x_mean"),
-                    "x_std": results.get("x_std"),
-                    "instance_standardize_x": bool(args.instance_standardize_x),
-                    "node_standardize_x": bool(args.node_standardize_x),
-                    "meta": meta,
-                },
-                model_path,
-            )
-            print(f"[train] wrote model: {model_path}")
+            if bool(args.save_models):
+                model_path = out_dir / f"{str(args.model)}_{tag}.pt"
+                torch.save(
+                    {
+                        "model_state_dict": {k: v.detach().cpu() for k, v in model.state_dict().items()},
+                        "objective": objective,
+                        "model": str(args.model),
+                        "mlp_hidden_dim": int(args.mlp_hidden_dim),
+                        "mlp_layers": int(args.mlp_layers),
+                        "mlp_dropout": float(args.mlp_dropout),
+                        "tfm_dim": int(args.tfm_dim),
+                        "tfm_layers": int(args.tfm_layers),
+                        "tfm_heads": int(args.tfm_heads),
+                        "tfm_ff_mult": int(args.tfm_ff_mult),
+                        "tfm_dropout": float(args.tfm_dropout),
+                        "soft_ce_tau": float(args.soft_ce_tau),
+                        "pairwise_pairs_per_instance": int(args.pairwise_pairs_per_instance),
+                        "pairwise_margin": float(args.pairwise_margin),
+                        "input_key": key,
+                        "target": target,
+                        "target_names": target_names,
+                        "x_mean": results.get("x_mean"),
+                        "x_std": results.get("x_std"),
+                        "instance_standardize_x": bool(args.instance_standardize_x),
+                        "node_standardize_x": bool(args.node_standardize_x),
+                        "meta": meta,
+                    },
+                    model_path,
+                )
+                print(f"[train] wrote model: {model_path}")
             return
 
         raise ValueError(f"Unknown objective: {objective}")

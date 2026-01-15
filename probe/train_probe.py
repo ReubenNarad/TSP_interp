@@ -289,7 +289,7 @@ def main(args):
         env_name=env.name,
         embed_dim=config["embed_dim"],
         num_encoder_layers=config["n_encoder_layers"],
-        num_heads=8,
+        num_heads=int(config.get("num_heads", 8)),
         temperature=config["temperature"],
     )
     print("Loading model from checkpoint...")

@@ -180,7 +180,7 @@ class FeatureAnalyzer:
             env_name=self.env.name,
             embed_dim=self.config['embed_dim'],
             num_encoder_layers=self.config['n_encoder_layers'],
-            num_heads=8,
+            num_heads=int(self.config.get("num_heads", 8)),
             temperature=self.config['temperature'],
         )
         
@@ -1198,5 +1198,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 

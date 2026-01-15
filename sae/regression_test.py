@@ -38,7 +38,7 @@ def load_tsp_model(run_path, config, env, device):
         env_name=env.name,
         embed_dim=config['embed_dim'],
         num_encoder_layers=config['n_encoder_layers'],
-        num_heads=8, # Assuming 8 heads, might need to be in config
+        num_heads=int(config.get("num_heads", 8)),
         temperature=config['temperature'],
     )
     model = REINFORCEClipped.load_from_checkpoint(

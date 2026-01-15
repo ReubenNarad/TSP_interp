@@ -56,6 +56,25 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--device", type=str, default=None, help="Device string, e.g. cuda, cpu.")
     p.add_argument("--out_path", type=str, default=None, help="Output .pt path (default: <data_dir>/probe_reps.pt)")
     p.add_argument(
+        "--checkpoint_path",
+        type=str,
+        default=None,
+        help="Optional explicit policy checkpoint path (.ckpt). If set, overrides --checkpoint_epoch.",
+    )
+    p.add_argument(
+        "--checkpoint_epoch",
+        type=int,
+        default=None,
+        help="Optional policy checkpoint epoch number (loads runs/<run>/checkpoints/checkpoint_epoch_<N>.ckpt).",
+    )
+    p.add_argument(
+        "--resid_dtype",
+        type=str,
+        default="float32",
+        choices=["float32", "float16"],
+        help="Storage dtype for X_resid (float16 saves disk; training will cast back to float32).",
+    )
+    p.add_argument(
         "--matnet_init_embedding_mode",
         type=str,
         default=None,
@@ -209,7 +228,13 @@ def main() -> None:
     _add_repo_to_path()
     from clt.utils import load_env_and_policy
 
-    info, policy = load_env_and_policy(run_dir=run_dir, device=device)
+    ckpt_path = Path(args.checkpoint_path).expanduser().resolve() if args.checkpoint_path else None
+    info, policy = load_env_and_policy(
+        run_dir=run_dir,
+        device=device,
+        checkpoint_path=ckpt_path,
+        checkpoint_epoch=int(args.checkpoint_epoch) if args.checkpoint_epoch is not None else None,
+    )
     env = info["env"]
 
     if args.matnet_init_embedding_mode is not None:
@@ -249,6 +274,8 @@ def main() -> None:
     if args.compute_sae:
         sae_dir = _resolve_sae_dir(run_dir, args.sae_dir)
         sae, sae_cfg = _load_sae(sae_dir, device=device)
+
+    resid_dtype = torch.float32 if str(args.resid_dtype) == "float32" else torch.float16
 
     B, n, _ = locs.shape
     batch_size = int(args.batch_size)
@@ -300,7 +327,7 @@ def main() -> None:
 
             activation_cat = torch.cat(act_parts, dim=-1) if len(act_parts) > 1 else act_parts[0]
 
-            flat = activation_cat.reshape(-1, activation_cat.shape[-1]).detach().to("cpu")
+            flat = activation_cat.reshape(-1, activation_cat.shape[-1]).detach().to("cpu", dtype=resid_dtype)
             X_parts.append(flat)
 
             pair_valid = valid_base[offset:end].unsqueeze(1) & valid_minus[offset:end]
@@ -338,6 +365,8 @@ def main() -> None:
             "data_dir": str(data_dir),
             "activation_key": str(args.activation_key),
             "activation_keys": activation_keys,
+            "checkpoint_path": str(ckpt_path) if ckpt_path is not None else None,
+            "checkpoint_epoch": int(args.checkpoint_epoch) if args.checkpoint_epoch is not None else None,
             "num_instances": int(B),
             "num_loc": int(n),
             "repr_dim": int(X_parts[0].shape[1]) if X_parts else 0,
@@ -346,6 +375,7 @@ def main() -> None:
             "sae_dir": str(sae_dir) if sae_dir is not None else None,
             "sae_cfg": sae_cfg,
             "sae_dtype": str(args.sae_dtype),
+            "resid_dtype": str(args.resid_dtype),
             "matnet_init_embedding_mode": str(args.matnet_init_embedding_mode) if args.matnet_init_embedding_mode else None,
             "label_names": ["delta_length_pct", "delta_time_pct"],
         },

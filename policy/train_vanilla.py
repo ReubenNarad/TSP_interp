@@ -88,7 +88,7 @@ def main(args):
     policy = HookedAttentionModelPolicy(env_name=env.name,
                                 embed_dim=args.embed_dim,
                                 num_encoder_layers=args.n_encoder_layers,
-                                num_heads=8,
+                                num_heads=args.num_heads,
                                 temperature=args.temperature,
                                 dropout=args.dropout,
                                 attention_dropout=args.attention_dropout,
@@ -125,9 +125,11 @@ def main(args):
         "temperature": args.temperature,
         "embed_dim": args.embed_dim,
         "n_encoder_layers": args.n_encoder_layers,
+        "num_heads": args.num_heads,
         "checkpoint_freq": args.checkpoint_freq,
         "dropout": args.dropout,
         "attention_dropout": args.attention_dropout,
+        "clip_val": args.clip_val,
         "lr_decay": args.lr_decay,
         "min_lr": args.min_lr,
         "exp_gamma": args.exp_gamma,
@@ -212,6 +214,7 @@ if __name__ == "__main__":
     parser.add_argument("--temperature", type=float, default=1.0)
     parser.add_argument("--embed_dim", type=int, default=128)
     parser.add_argument("--n_encoder_layers", type=int, default=3)
+    parser.add_argument("--num_heads", type=int, default=8)
     parser.add_argument("--checkpoint_freq", type=int, default=10, 
                        help="Save checkpoint every N epochs")
     parser.add_argument("--dropout", type=float, default=0.0,

@@ -118,12 +118,21 @@ def _maybe_bbox_from_pool_meta(run_dir: Path, pad: float) -> Optional[Tuple[floa
         return None
 
 
-def _load_val_instance_from_run(run_dir: Path, instance_idx: int) -> tuple[np.ndarray, torch.Tensor, Optional[np.ndarray], float]:
+def _load_val_instance_from_run(
+    run_dir: Path, instance_idx: int
+) -> tuple[np.ndarray, Optional[torch.Tensor], Optional[np.ndarray], float]:
     cfg = json.loads((run_dir / "config.json").read_text())
     cost_scale = float(cfg.get("cost_scale", 1.0) or 1.0)
 
-    val_td = pickle.load(open(run_dir / "val_td.pkl", "rb"))
-    cost_matrix = val_td["cost_matrix"][instance_idx].detach().cpu().to(torch.float32)
+    cost_matrix: Optional[torch.Tensor] = None
+    try:
+        val_td = pickle.load(open(run_dir / "val_td.pkl", "rb"))
+        cost_matrix = val_td["cost_matrix"][instance_idx].detach().cpu().to(torch.float32)
+    except Exception:
+        # Some runs pickle `val_td.pkl` with CUDA tensors. If CUDA is unavailable
+        # (e.g. plotting on a CPU-only machine), we can still plot using saved
+        # lon/lat coords + baseline tours; computing deltas requires cost_matrix.
+        cost_matrix = None
 
     coords_path = run_dir / "val_coords_lonlat.npy"
     coords = None
@@ -131,6 +140,11 @@ def _load_val_instance_from_run(run_dir: Path, instance_idx: int) -> tuple[np.nd
         coords = np.load(coords_path)[instance_idx].astype(np.float64, copy=False)
     else:
         # fallback circle coords
+        if cost_matrix is None:
+            raise RuntimeError(
+                f"Missing {coords_path} and could not load cost_matrix from {run_dir/'val_td.pkl'}. "
+                "Cannot infer N for plotting."
+            )
         n = int(cost_matrix.shape[0])
         theta = np.linspace(0, 2 * np.pi, num=n, endpoint=False)
         coords = np.stack([np.cos(theta), np.sin(theta)], axis=1).astype(np.float64)
@@ -339,6 +353,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--baseline_file", type=str, default="baseline_concorde_128.pkl", help="Concorde baseline file in run dir.")
     p.add_argument("--draw_tour", action="store_true", help="Overlay the (baseline) tour in red.")
     p.add_argument(
+        "--minimal",
+        action="store_true",
+        help="Simplified aesthetic: no title/axes/grid/colorbar/legend (just map, nodes, tour).",
+    )
+    p.add_argument(
         "--compute_deltas",
         action="store_true",
         help="Compute deltas for the selected run val instance by re-solving base and each removal with Concorde (slow).",
@@ -359,11 +378,16 @@ def main() -> None:
         run_dir = _infer_run_dir(args.run)
         coords, cost_matrix, val_indices, cost_scale = _load_val_instance_from_run(run_dir, inst)
         if args.compute_deltas:
+            if cost_matrix is None:
+                raise RuntimeError(
+                    "Cannot --compute_deltas because cost_matrix could not be loaded from val_td.pkl. "
+                    "This can happen if val_td.pkl was pickled with CUDA tensors but CUDA is unavailable."
+                )
             scores = _compute_deltas_for_instance(
                 cost_matrix, cost_scale=cost_scale, rounding=str(args.rounding), timeout_sec=float(args.concorde_timeout_sec)
             )
         else:
-            scores = np.full((coords.shape[0],), np.nan, dtype=np.float64)
+            scores = None if args.minimal else np.full((coords.shape[0],), np.nan, dtype=np.float64)
 
         if args.draw_tour:
             tour = _load_baseline_tour(run_dir, args.baseline_file, inst)
@@ -409,8 +433,12 @@ def main() -> None:
             scores[:] = np.nan
         src = data_path.name
 
-    best_idx = int(np.nanargmax(scores)) if np.isfinite(scores).any() else None
-    best_val = float(scores[best_idx]) if best_idx is not None else float("nan")
+    if scores is None:
+        best_idx = None
+        best_val = float("nan")
+    else:
+        best_idx = int(np.nanargmax(scores)) if np.isfinite(scores).any() else None
+        best_val = float(scores[best_idx]) if best_idx is not None else float("nan")
 
     fig, ax = plt.subplots(figsize=(8, 8), dpi=160)
     bbox = None
@@ -442,19 +470,30 @@ def main() -> None:
         edgecolors="none",
     )
 
-    sc = ax.scatter(
-        coords[:, 0],
-        coords[:, 1],
-        c=scores,
-        s=base_s,
-        cmap="viridis",
-        vmin=args.vmin,
-        vmax=args.vmax,
-        alpha=0.95,
-        zorder=5,
-        edgecolors="none",
-    )
-    if best_idx is not None:
+    if scores is None:
+        sc = ax.scatter(
+            coords[:, 0],
+            coords[:, 1],
+            c="tab:blue",
+            s=base_s,
+            alpha=0.95,
+            zorder=5,
+            edgecolors="none",
+        )
+    else:
+        sc = ax.scatter(
+            coords[:, 0],
+            coords[:, 1],
+            c=scores,
+            s=base_s,
+            cmap="viridis",
+            vmin=args.vmin,
+            vmax=args.vmax,
+            alpha=0.95,
+            zorder=5,
+            edgecolors="none",
+        )
+    if best_idx is not None and not args.minimal:
         ring_extra = 4.5  # additional points beyond the node outline
         ring_s = (math.sqrt(base_s) + outline_extra + ring_extra) ** 2
         ax.scatter(
@@ -468,22 +507,27 @@ def main() -> None:
             label=f"best node (idx={best_idx}, {best_val:.3f}%)",
         )
 
-    ax.set_xlabel("lon")
-    ax.set_ylabel("lat")
-    ax.grid(True, color="0.85", linewidth=0.8, alpha=0.8)
     ax.set_aspect("equal", adjustable="box")
     ax.set_xlim(bbox[2], bbox[3])
     ax.set_ylim(bbox[0], bbox[1])
 
-    title = args.title
-    if title is None:
-        title = f"{src} | inst {inst} | {args.target} deltas"
-    ax.set_title(title)
+    if args.minimal:
+        ax.set_axis_off()
+        ax.grid(False)
+    else:
+        ax.set_xlabel("lon")
+        ax.set_ylabel("lat")
+        ax.grid(True, color="0.85", linewidth=0.8, alpha=0.8)
 
-    cb = plt.colorbar(sc, ax=ax, fraction=0.046, pad=0.04)
-    cb.set_label(label)
-    if best_idx is not None:
-        ax.legend(loc="upper right")
+        title = args.title
+        if title is None:
+            title = f"{src} | inst {inst} | {args.target} deltas"
+        ax.set_title(title)
+
+        cb = plt.colorbar(sc, ax=ax, fraction=0.046, pad=0.04)
+        cb.set_label(label)
+        if best_idx is not None:
+            ax.legend(loc="upper right")
 
     if args.out:
         out_path = Path(args.out).expanduser().resolve()
@@ -496,7 +540,10 @@ def main() -> None:
             else:
                 out_path = data_path.parent / f"delta_{args.target}_inst_{inst}.png"
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(out_path, bbox_inches="tight")
+    if args.minimal:
+        fig.savefig(out_path, bbox_inches="tight", pad_inches=0.0)
+    else:
+        fig.savefig(out_path, bbox_inches="tight")
     plt.close(fig)
     print(f"Wrote {out_path}")
 

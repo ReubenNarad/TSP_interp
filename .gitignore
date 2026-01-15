@@ -27,9 +27,11 @@ Oinstance_*.sol
 /experiments/what-if/tmp/
 /docs/archive/
 scripts/local_uniform/
+/scripts/tmp/
 
 # Virtual environment
 /arxiv/
+/papers/
 
 # Allow images in the images directory for documentation
 !/images/feature_example1.png

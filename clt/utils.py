@@ -64,7 +64,51 @@ def _is_matnet_run(env, config: Dict) -> bool:
     return False
 
 
-def load_env_and_policy(run_dir: Path, device: torch.device):
+def _resolve_policy_checkpoint(
+    run_dir: Path,
+    *,
+    checkpoint_path: Optional[Path] = None,
+    checkpoint_epoch: Optional[int] = None,
+) -> Path:
+    """Resolve a policy checkpoint under runs/<run>/checkpoints.
+
+    Priority:
+      1) checkpoint_path (explicit)
+      2) checkpoint_epoch (by convention: checkpoint_epoch_<N>.ckpt)
+      3) latest checkpoint_epoch_*.ckpt
+    """
+    checkpoint_dir = run_dir / "checkpoints"
+    if checkpoint_path is not None:
+        path = Path(checkpoint_path).expanduser().resolve()
+        if not path.exists():
+            raise FileNotFoundError(f"Checkpoint path not found: {path}")
+        return path
+
+    if checkpoint_epoch is not None:
+        epoch = int(checkpoint_epoch)
+        if epoch <= 0:
+            raise ValueError(f"checkpoint_epoch must be >= 1, got {epoch}")
+        path = checkpoint_dir / f"checkpoint_epoch_{epoch}.ckpt"
+        if not path.exists():
+            raise FileNotFoundError(f"Checkpoint for epoch {epoch} not found: {path}")
+        return path
+
+    candidates = list(checkpoint_dir.glob("checkpoint_epoch_*.ckpt"))
+    if not candidates:
+        raise FileNotFoundError(f"No checkpoints found in {checkpoint_dir}")
+    return max(
+        candidates,
+        key=lambda p: int(p.stem.split("checkpoint_epoch_")[1]),
+    )
+
+
+def load_env_and_policy(
+    run_dir: Path,
+    device: torch.device,
+    *,
+    checkpoint_path: Optional[Path] = None,
+    checkpoint_epoch: Optional[int] = None,
+):
     env_path = run_dir / "env.pkl"
     config_path = run_dir / "config.json"
 
@@ -81,14 +125,7 @@ def load_env_and_policy(run_dir: Path, device: torch.device):
 
     patch_env_specs(env)
 
-    checkpoint_dir = run_dir / "checkpoints"
-    candidates = list(checkpoint_dir.glob("checkpoint_epoch_*.ckpt"))
-    if not candidates:
-        raise FileNotFoundError(f"No checkpoints found in {checkpoint_dir}")
-    latest = max(
-        candidates,
-        key=lambda p: int(p.stem.split("checkpoint_epoch_")[1]),
-    )
+    ckpt = _resolve_policy_checkpoint(run_dir, checkpoint_path=checkpoint_path, checkpoint_epoch=checkpoint_epoch)
 
     if _is_matnet_run(env, config):
         policy = EnhancedHookedMatNetPolicy(
@@ -108,14 +145,14 @@ def load_env_and_policy(run_dir: Path, device: torch.device):
             env_name=env.name,
             embed_dim=config["embed_dim"],
             num_encoder_layers=config["n_encoder_layers"],
-            num_heads=8,
+            num_heads=int(config.get("num_heads", 8)),
             temperature=config["temperature"],
             dropout=config.get("dropout", 0.0),
             attention_dropout=config.get("attention_dropout", 0.0),
         )
 
     model = REINFORCEClipped.load_from_checkpoint(
-        latest,
+        ckpt,
         env=env,
         policy=policy,
         strict=False,
